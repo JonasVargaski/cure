@@ -3,8 +3,8 @@
 #include <freertos/task.h>
 
 #include "global.h"
-#include "xTasks/display.h"
 #include "xTasks/control.h"
+#include "xTasks/display.h"
 #include "xTasks/main.h"
 
 #include "ADS1X15.h"
@@ -25,6 +25,9 @@ void setup()
   {
     Serial.println("ads1115 Connection failed");
   }
+
+  prefs.begin("global_prefs", false);
+  vpMutex = xSemaphoreCreateMutex();
 
   int pins[pinCount] = {13, 12, 14, 27, 26, 25, 33, 32};
 

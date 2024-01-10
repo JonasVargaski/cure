@@ -1,38 +1,39 @@
 #ifndef _MODEL_DISPLAY_INT16_
 #define _MODEL_DISPLAY_INT16_
 
+#include <Preferences.h>
+
 #include <stdint.h>
 #include <freertos/semphr.h>
-#include <Preferences.h>
 
 class DisplayInt16Model
 {
 private:
-  SemaphoreHandle_t _mutex;
+  SemaphoreHandle_t *_mutex;
+  Preferences *_prefs;
   uint16_t _value;
-  bool _persist = false;
 
 public:
   uint16_t vp;
-  DisplayInt16Model(uint16_t vpAddress, bool persist)
+  DisplayInt16Model(uint16_t vpAddress, SemaphoreHandle_t *mutex, Preferences *prefs)
   {
     vp = vpAddress;
     _value = 0;
-    _mutex = xSemaphoreCreateMutex();
-    _persist = persist;
-
-    if (persist)
-    {
-      Preferences preferences;
-      preferences.begin("vp_prefs", false);
-      _value = preferences.getUInt(String(vp).c_str(), _value);
-      preferences.end();
-    }
+    _mutex = mutex;
+    _prefs = prefs;
   }
 
   ~DisplayInt16Model()
   {
-    vSemaphoreDelete(_mutex);
+    vSemaphoreDelete(*_mutex);
+  }
+
+  void begin()
+  {
+    if (_prefs != nullptr)
+    {
+      _value = _prefs->getUInt(String(vp).c_str(), _value);
+    }
   }
 
   uint16_t value()
@@ -42,13 +43,13 @@ public:
 
   void setValue(uint16_t newValue)
   {
-    if (_mutex && xSemaphoreTake(_mutex, portMAX_DELAY))
+    if (xSemaphoreTake(*_mutex, portMAX_DELAY))
     {
       _value = newValue;
-      Preferences preferences;
-      preferences.begin("vp_prefs", false);
-      preferences.putUInt(String(vp).c_str(), _value);
-      preferences.end();
+      if (_prefs != nullptr)
+      {
+        _prefs->putUInt(String(vp).c_str(), _value);
+      }
       xSemaphoreGive(_mutex);
     }
   }

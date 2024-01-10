@@ -13,7 +13,8 @@ void xTaskMain(void *parameter)
   pinMode(13, OUTPUT);
   Serial.begin(115200);
 
-  // readTemp.setValue(1234);
+  readTemp.begin();
+  readTemp.setValue(1234);
 
   while (1)
   {
