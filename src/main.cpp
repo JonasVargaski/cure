@@ -11,13 +11,10 @@ void setup()
 {
   Serial.begin(115200);
 
-  // Wire.begin();
+  ads.setGain(GAIN_TWOTHIRDS); // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)
+  ads.begin();
 
-  // ads.begin();
-  // ads.setGain(0);
-  // ads.setMode(1);
-
-  readTemp.begin();
+  // readTemp.begin();
 
   // if (!ads.isConnected())
   // {

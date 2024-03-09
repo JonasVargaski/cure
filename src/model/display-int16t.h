@@ -11,7 +11,7 @@ class DisplayInt16Model
 private:
   SemaphoreHandle_t *_mutex;
   Preferences *_prefs;
-  uint16_t _value;
+  uint16_t _value = 0;
 
 public:
   uint16_t vp;
