@@ -7,29 +7,31 @@
 #include "xTasks/display.h"
 #include "xTasks/main.h"
 
-#include "ADS1X15.h"
-
-#define pinCount 8
-
 void setup()
 {
   Serial.begin(115200);
 
-  Wire.begin();
+  // Wire.begin();
 
-  ads.begin();
-  ads.setGain(0);
-  ads.setMode(1);
+  // ads.begin();
+  // ads.setGain(0);
+  // ads.setMode(1);
 
-  if (!ads.isConnected())
+  readTemp.begin();
+
+  // if (!ads.isConnected())
+  // {
+  //   Serial.println("ads1115 Connection failed");
+  // }
+
+  if (!prefs.begin("global_prefs", false))
   {
-    Serial.println("ads1115 Connection failed");
+    Serial.println("Preferences open failed");
+    delay(3000);
+    ESP.restart();
   }
 
-  prefs.begin("global_prefs", false);
   vpMutex = xSemaphoreCreateMutex();
-
-  int pins[pinCount] = {13, 12, 14, 27, 26, 25, 33, 32};
 
   for (int i = 0; i < pinCount; i++)
   {
@@ -44,6 +46,4 @@ void setup()
 
 void loop()
 {
-  sensor_temp.addValue(ads.readADC(0));
-  delay(333);
 }

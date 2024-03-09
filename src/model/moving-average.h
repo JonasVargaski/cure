@@ -13,7 +13,7 @@ private:
   bool _completed = false;
 
 public:
-  MovingAverageModel(uint8_t samples = 10)
+  MovingAverageModel(uint8_t samples = 5)
   {
     _samples = samples;
     _values = new uint16_t[_samples];
@@ -36,7 +36,7 @@ public:
     _completed = false;
   }
 
-  void addValue(uint16_t newValue)
+  void setValue(uint16_t newValue)
   {
     uint16_t value = (newValue >= 0 && newValue <= UINT16_MAX) ? newValue : 0;
 

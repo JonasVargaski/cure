@@ -10,24 +10,8 @@
 
 void xTaskDisplay(void *parameter)
 {
-  pinMode(14, OUTPUT);
-
   while (1)
   {
-    // if (xSemaphoreTake(displayMutex, pdMS_TO_TICKS(200))) // Aguarda 200ms ou segue execução
-    // {
-    //   xSemaphoreGive(displayMutex);
-    // }
-
-    if (digitalRead(14))
-    {
-      digitalWrite(14, 0);
-    }
-    else
-    {
-      digitalWrite(14, 1);
-    }
-
     vTaskDelay(pdMS_TO_TICKS(200));
   }
 }

@@ -3,16 +3,18 @@
 
 #include <Preferences.h>
 
-#include "ADS1X15.h"
 #include "model/moving-average.h"
 #include "model/display-int16t.h"
 
-ADS1115 ads(0x48);
+#define pinCount 8
 
 Preferences prefs;
 SemaphoreHandle_t vpMutex;
 
-MovingAverageModel sensor_temp(15);
+MovingAverageModel sensor_temp(5);
 DisplayInt16Model readTemp(1000, &vpMutex, &prefs);
+
+// Pin map
+int pins[pinCount] = {13, 12, 14, 27, 26, 25, 33, 32};
 
 #endif
