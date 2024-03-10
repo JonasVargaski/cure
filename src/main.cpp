@@ -5,21 +5,11 @@
 #include "global.h"
 #include "xTasks/control.h"
 #include "xTasks/display.h"
-#include "xTasks/main.h"
+#include "xTasks/sensors.h"
 
 void setup()
 {
   Serial.begin(115200);
-
-  ads.setGain(GAIN_TWOTHIRDS); // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)
-  ads.begin();
-
-  // readTemp.begin();
-
-  // if (!ads.isConnected())
-  // {
-  //   Serial.println("ads1115 Connection failed");
-  // }
 
   if (!prefs.begin("global_prefs", false))
   {
@@ -35,10 +25,10 @@ void setup()
     pinMode(pins[i], OUTPUT);
   }
 
-  xTaskCreatePinnedToCore(xTaskMain, "mainTask", 10000, NULL, 1, NULL, 0);
   xTaskCreatePinnedToCore(xTaskControl, "controlTask", 10000, NULL, 2, NULL, 0);
 
   xTaskCreatePinnedToCore(xTaskDisplay, "displayTask", 10000, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 10000, NULL, 2, NULL, 1);
 }
 
 void loop()
