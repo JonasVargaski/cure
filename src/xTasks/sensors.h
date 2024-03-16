@@ -21,7 +21,15 @@ void xTaskSensors(void *parameter)
 
   while (1)
   {
-    sensor_temp.setValue(ads.readADC_SingleEnded(0)); // Lê o valor do canal 0
+    uint16_t analogValue = ads.readADC_SingleEnded(0);
+    float voltage = analogValue * 0.1875 / 1000; // 0.1875V por LSB para o ADS1115
+
+    float temperature = voltage * 100.0; // 100mV por grau Celsius para o LM35
+    float lm35_temperature_fahrenheit = (temperature * 9.0) / 5.0 + 32.0;
+
+    temperatureSensor.setValue(temperature);
+    humiditySensor.setValue(lm35_temperature_fahrenheit);
+
     count++;
 
     // DEBUG SERIAL LEITURAS 10 secs
@@ -29,13 +37,8 @@ void xTaskSensors(void *parameter)
     {
       count = 0;
 
-      // Converte o valor lido para tensão e, em seguida, para temperatura em graus Celsius
-      float voltage = sensor_temp.value() * 0.1875 / 1000; // 0.1875V por LSB para o ADS1115
-      float temperature = voltage * 100.0;                 // 100mV por grau Celsius para o LM35
-      float lm35_temperature_fahrenheit = (temperature * 9.0) / 5.0 + 32.0;
-
       Serial.print("[DEBUG sensors] a0 = ");
-      Serial.print(sensor_temp.value());
+      Serial.print(temperatureSensor.getValue());
       Serial.print(" | ");
       Serial.print(voltage, 3);
       Serial.print("V | ");

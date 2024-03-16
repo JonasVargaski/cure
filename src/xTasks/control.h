@@ -6,15 +6,21 @@
 #include <freertos/task.h>
 #include <freertos/semphr.h>
 
+#include "global.h"
+
 void xTaskControl(void *parameter)
 {
   while (1)
   {
-    vTaskDelay(pdMS_TO_TICKS(300));
-    digitalWrite(pins[2], HIGH);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    digitalWrite(pins[1], HIGH);
 
-    vTaskDelay(pdMS_TO_TICKS(300));
-    digitalWrite(pins[2], LOW);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    digitalWrite(pins[1], LOW);
+
+    digitalWrite(pins[3], !fanSetPoint.getValue());
+    digitalWrite(pins[5], !buzzerSetPoint.getValue());
+    digitalWrite(pins[7], !motorSetPoint.getValue());
   }
 }
 

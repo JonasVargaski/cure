@@ -1,5 +1,8 @@
 {
   "files.associations": {
-    "algorithm": "cpp"
+    "algorithm": "cpp",
+    "optional": "cpp",
+    "system_error": "cpp",
+    "type_traits": "cpp"
   }
 }

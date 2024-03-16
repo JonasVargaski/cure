@@ -16,6 +16,27 @@ void onHMIEvent(String address, int wordValue, String message, String response)
   Serial.print(address);
   Serial.print(" | ");
   Serial.println(wordValue);
+
+  if (address == "1001")
+  {
+    temperatureSetPoint.setValue(wordValue);
+  }
+  else if (address == "1007")
+  {
+    humiditySetPoint.setValue(wordValue);
+  }
+  else if (address == "1003")
+  {
+    fanSetPoint.setValue(wordValue);
+  }
+  else if (address == "1004")
+  {
+    buzzerSetPoint.setValue(wordValue);
+  }
+  else if (address == "1005")
+  {
+    motorSetPoint.setValue(wordValue);
+  }
 }
 
 void xTaskDisplay(void *parameter)
@@ -23,15 +44,18 @@ void xTaskDisplay(void *parameter)
   DWIN hmi(Serial2, 16, 17, 115200);
   hmi.hmiCallBack(onHMIEvent);
 
-  hmi.setVP(0x1001, 104);
-  hmi.setVP(0x1003, 1);
-
   while (1)
   {
-    float voltage = sensor_temp.value() * 0.1875 / 1000;
-    float temperature = voltage * 100.0;
 
-    hmi.setVPWord(0x1002, temperature);
+    hmi.setVPWord(temperatureSensor.getVp(), temperatureSensor.getValue());
+    hmi.setVPWord(humiditySensor.getVp(), humiditySensor.getValue());
+
+    hmi.setVPWord(temperatureSetPoint.getVp(), temperatureSetPoint.getValue());
+    hmi.setVPWord(humiditySetPoint.getVp(), humiditySetPoint.getValue());
+
+    hmi.setVPWord(fanSetPoint.getVp(), fanSetPoint.getValue());
+    hmi.setVPWord(buzzerSetPoint.getVp(), buzzerSetPoint.getValue());
+    hmi.setVPWord(motorSetPoint.getVp(), motorSetPoint.getValue());
 
     hmi.handle();
   }

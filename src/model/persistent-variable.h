@@ -1,0 +1,54 @@
+#ifndef _PERSISTENT_VARIABLE_
+#define _PERSISTENT_VARIABLE_
+
+#include <Preferences.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+
+class PersistentVariable
+{
+private:
+  SemaphoreHandle_t *mutex;
+
+  uint16_t vp;
+  int value;
+  int minValue;
+  int maxValue;
+
+public:
+  PersistentVariable(uint16_t _vp, int _minValue, int _maxValue, SemaphoreHandle_t *_mutex) : vp(_vp), minValue(_minValue), maxValue(_maxValue), mutex(_mutex) {}
+
+  void begin()
+  {
+    Preferences preferences;
+    preferences.begin("VP", true);
+    value = preferences.getInt(std::to_string(vp).c_str(), minValue);
+    preferences.end();
+  }
+
+  void setValue(int newValue)
+  {
+    if (xSemaphoreTake(*mutex, portMAX_DELAY) == pdTRUE)
+    {
+      value = newValue >= maxValue ? maxValue : newValue <= minValue ? minValue
+                                                                     : newValue;
+      Preferences preferences;
+      preferences.begin("VP", false);
+      preferences.putInt(std::to_string(vp).c_str(), newValue);
+      preferences.end();
+      xSemaphoreGive(*mutex);
+    }
+  }
+
+  int getValue()
+  {
+    return value;
+  }
+
+  u_int16_t getVp()
+  {
+    return vp;
+  }
+};
+
+#endif

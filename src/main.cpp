@@ -10,25 +10,26 @@
 void setup()
 {
   Serial.begin(115200);
-
-  if (!prefs.begin("global_prefs", false))
-  {
-    Serial.println("Preferences open failed");
-    delay(3000);
-    ESP.restart();
-  }
-
-  vpMutex = xSemaphoreCreateMutex();
+  delay(500);
 
   for (int i = 0; i < pinCount; i++)
   {
     pinMode(pins[i], OUTPUT);
+    digitalWrite(pins[i], LOW);
   }
 
-  xTaskCreatePinnedToCore(xTaskControl, "controlTask", 10000, NULL, 2, NULL, 0);
+  temperatureSetPoint.begin();
+  humiditySetPoint.begin();
 
-  xTaskCreatePinnedToCore(xTaskDisplay, "displayTask", 10000, NULL, 1, NULL, 1);
-  xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 10000, NULL, 2, NULL, 1);
+  fanSetPoint.begin();
+  buzzerSetPoint.begin();
+  motorSetPoint.begin();
+
+  preferencesMutex = xSemaphoreCreateMutex();
+
+  xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 2, NULL, 0);
+  xTaskCreatePinnedToCore(xTaskDisplay, "displayTask", 4096, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 4096, NULL, 2, NULL, 1);
 }
 
 void loop()

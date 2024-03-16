@@ -6,6 +6,7 @@
 class MovingAverageModel
 {
 private:
+  u_int16_t _vp;
   uint8_t _samples;
   uint16_t *_values;
   int _index;
@@ -13,8 +14,9 @@ private:
   bool _completed = false;
 
 public:
-  MovingAverageModel(uint8_t samples = 5)
+  MovingAverageModel(u_int16_t vp, uint8_t samples)
   {
+    _vp = vp;
     _samples = samples;
     _values = new uint16_t[_samples];
     reset();
@@ -51,7 +53,7 @@ public:
     _index = (_index + 1) % _samples;
   }
 
-  uint16_t value() const
+  uint16_t getValue() const
   {
     return static_cast<uint16_t>(_sum / _samples);
   }
@@ -59,6 +61,11 @@ public:
   bool isComplete()
   {
     return _completed;
+  }
+
+  u_int16_t getVp()
+  {
+    return _vp;
   }
 };
 
