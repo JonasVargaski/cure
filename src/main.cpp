@@ -27,9 +27,9 @@ void setup()
 
   preferencesMutex = xSemaphoreCreateMutex();
 
-  xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 2, NULL, 0);
-  xTaskCreatePinnedToCore(xTaskDisplay, "displayTask", 4096, NULL, 1, NULL, 1);
-  xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 4096, NULL, 2, NULL, 1);
+  xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 1, NULL, 0);
+  xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 4096, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(xTaskDisplay, "displayTask", 4096, NULL, 2, NULL, 1);
 }
 
 void loop()

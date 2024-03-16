@@ -46,7 +46,6 @@ void xTaskDisplay(void *parameter)
 
   while (1)
   {
-
     hmi.setVPWord(temperatureSensor.getVp(), temperatureSensor.getValue());
     hmi.setVPWord(humiditySensor.getVp(), humiditySensor.getValue());
 
@@ -58,6 +57,7 @@ void xTaskDisplay(void *parameter)
     hmi.setVPWord(motorSetPoint.getVp(), motorSetPoint.getValue());
 
     hmi.handle();
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
