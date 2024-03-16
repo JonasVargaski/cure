@@ -25,7 +25,7 @@ void setup()
   buzzerSetPoint.begin();
   motorSetPoint.begin();
 
-  preferencesMutex = xSemaphoreCreateMutex();
+  variableMutex = xSemaphoreCreateMutex();
 
   xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 1, NULL, 0);
   xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 4096, NULL, 1, NULL, 1);

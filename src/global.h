@@ -12,7 +12,7 @@
 
 #define pinCount 8
 
-SemaphoreHandle_t preferencesMutex;
+SemaphoreHandle_t variableMutex;
 Preferences preferences;
 
 // Global variables
@@ -21,12 +21,12 @@ MovingAverageModel humiditySensor(0x1006, 6);
 
 // Globals Parameters
 
-PersistentVariable temperatureSetPoint(0x1001, 70, 160, &preferencesMutex);
-PersistentVariable humiditySetPoint(0x1007, 70, 140, &preferencesMutex);
+PersistentVariable temperatureSetPoint(0x1001, 70, 160, &variableMutex);
+PersistentVariable humiditySetPoint(0x1007, 70, 140, &variableMutex);
 
-PersistentVariable fanSetPoint(0x1003, 0, 1, &preferencesMutex);
-PersistentVariable buzzerSetPoint(0x1004, 0, 1, &preferencesMutex);
-PersistentVariable motorSetPoint(0x1005, 0, 1, &preferencesMutex);
+PersistentVariable fanSetPoint(0x1003, 0, 1, &variableMutex);
+PersistentVariable buzzerSetPoint(0x1004, 0, 1, &variableMutex);
+PersistentVariable motorSetPoint(0x1005, 0, 1, &variableMutex);
 
 // Pin map
 int pins[pinCount] = {13, 12, 14, 27, 26, 25, 33, 32};
