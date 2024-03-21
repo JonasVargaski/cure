@@ -9,55 +9,49 @@
 #include "global.h"
 #include <DWIN.h>
 
-void onHMIEvent(String address, int wordValue, String message, String response)
-{
-  // Serial.println("OnEvent : [ A : " + address + " | D : " + String(lastByte, HEX) + " | M : " + message + " | R : " + response + " ]");
-  Serial.print("[DEBUG display] vp = ");
-  Serial.print(address);
-  Serial.print(" | ");
-  Serial.println(wordValue);
+TickType_t xLastWakeTime = 0;
 
-  if (address == "1001")
-  {
-    temperatureSetPoint.setValue(wordValue);
-  }
-  else if (address == "1007")
-  {
-    humiditySetPoint.setValue(wordValue);
-  }
-  else if (address == "1003")
-  {
-    fanSetPoint.setValue(wordValue);
-  }
-  else if (address == "1004")
-  {
-    buzzerSetPoint.setValue(wordValue);
-  }
-  else if (address == "1005")
-  {
-    motorSetPoint.setValue(wordValue);
-  }
+void onHMIEvent(DwinFrame *frame)
+{
+  frame->print();
+
+  uint16_t vp = frame->getVPAddress();
+
+  if (vp == temperatureSetPoint.getVp())
+    temperatureSetPoint.setValue(frame->getWorldValue());
+  else if (vp == humiditySetPoint.getVp())
+    humiditySetPoint.setValue(frame->getWorldValue());
+  else if (vp == fanSetPoint.getVp())
+    fanSetPoint.setValue(frame->getWorldValue());
+  else if (vp == buzzerSetPoint.getVp())
+    buzzerSetPoint.setValue(frame->getWorldValue());
+  else if (vp == motorSetPoint.getVp())
+    motorSetPoint.setValue(frame->getWorldValue());
+
+  xLastWakeTime = 0;
 }
 
 void xTaskDisplay(void *parameter)
 {
-  DWIN hmi(Serial2, 16, 17, 115200);
+  DWIN hmi(Serial2, 16, 17, 115200, 35);
   hmi.hmiCallBack(onHMIEvent);
 
   while (1)
   {
-    hmi.setVPWord(temperatureSensor.getVp(), temperatureSensor.getValue());
-    hmi.setVPWord(humiditySensor.getVp(), humiditySensor.getValue());
-
-    hmi.setVPWord(temperatureSetPoint.getVp(), temperatureSetPoint.getValue());
-    hmi.setVPWord(humiditySetPoint.getVp(), humiditySetPoint.getValue());
-
-    hmi.setVPWord(fanSetPoint.getVp(), fanSetPoint.getValue());
-    hmi.setVPWord(buzzerSetPoint.getVp(), buzzerSetPoint.getValue());
-    hmi.setVPWord(motorSetPoint.getVp(), motorSetPoint.getValue());
+    if (xTaskGetTickCount() - xLastWakeTime >= pdMS_TO_TICKS(1000))
+    {
+      hmi.setVPWord(temperatureSensor.getVp(), temperatureSensor.getValue());
+      hmi.setVPWord(humiditySensor.getVp(), humiditySensor.getValue());
+      hmi.setVPWord(temperatureSetPoint.getVp(), temperatureSetPoint.getValue());
+      hmi.setVPWord(humiditySetPoint.getVp(), humiditySetPoint.getValue());
+      hmi.setVPWord(fanSetPoint.getVp(), fanSetPoint.getValue());
+      hmi.setVPWord(buzzerSetPoint.getVp(), buzzerSetPoint.getValue());
+      hmi.setVPWord(motorSetPoint.getVp(), motorSetPoint.getValue());
+      xLastWakeTime = xTaskGetTickCount();
+    }
 
     hmi.handle();
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(60));
   }
 }
 

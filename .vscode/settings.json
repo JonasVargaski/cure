@@ -3,6 +3,12 @@
     "algorithm": "cpp",
     "optional": "cpp",
     "system_error": "cpp",
-    "type_traits": "cpp"
+    "type_traits": "cpp",
+    "istream": "cpp",
+    "ostream": "cpp",
+    "array": "cpp",
+    "functional": "cpp",
+    "tuple": "cpp",
+    "utility": "cpp"
   }
 }

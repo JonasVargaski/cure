@@ -8,10 +8,10 @@ class DWIN
 {
 
 public:
-    DWIN(HardwareSerial &port, uint8_t receivePin, uint8_t transmitPin, long baud);
+    DWIN(HardwareSerial &port, uint8_t receivePin, uint8_t transmitPin, long baud, int bufferSize);
 
     // Listen Touch Events & Messages from HMI
-    String handle();
+    DwinFrame *handle();
     // Get Version
     double getHWVersion();
     // get GUI software version
@@ -28,17 +28,10 @@ public:
     byte getBrightness();
     // set Data on VP Address
     void setText(long address, String textData);
-    // // Set Byte Data on VP Address makes more sense
-    void setVPByte(long address, byte data); // alias of below
-    void setVP(long address, byte data);
-    // read byte from VP Address if bool = true read HiByte
-    byte readVPByte(long address, bool = 0);
     // Set WordData on VP Address
     void setVPWord(long address, int data);
     // read WordData from VP Address you can read sequential multiple words (data returned in rx event)
-    void readVPWord(long address, byte numWords);
-    // read or write the NOR from/to VP must be on a even address 2 word are written or read
-    void norReadWrite(bool write, long VPAddress, long NORAddress);
+    void readVPWord(uint16_t address, byte numWords);
     // Play a sound
     void playSound(byte soundID);
     // beep Buzzer for 1 sec
@@ -70,20 +63,15 @@ public:
     //  hmi.sendIntArray(0x82,intArrayFill,sizeof(intArrayFill));
     void sendIntArray(uint16_t instruction, uint16_t dwinIntArray[], byte arraySize);
 
-    // Callback Function
-    typedef void (*hmiListener)(String address, int lastBytes, String message, String response);
-
-    // CallBack Method
+    typedef void (*hmiListener)(DwinFrame *frame);
     void hmiCallBack(hmiListener callBackFunction);
 
 private:
-    Stream *_dwinSerial; // DWIN Serial interface
-
+    Stream *_dwinSerial;
+    DwinFrame frame;
     hmiListener listenerCallback;
 
-    byte readCMDLastByte(bool hiByte = 0);
-    void readDWIN();
-    String checkHex(byte currentNo);
+    DwinFrame *readDWIN();
 };
 
 #endif // DWIN_H
