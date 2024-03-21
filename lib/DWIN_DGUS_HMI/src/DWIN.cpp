@@ -249,22 +249,16 @@ void DWIN::hmiCallBack(hmiListener callBack)
 
 void DWIN::readDWIN()
 {
-    String buffer;
+    DwinFrame frame(20);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (xTaskGetTickCount() - xLastWakeTime < pdMS_TO_TICKS(CMD_READ_TIMEOUT))
     {
         if (_dwinSerial->available() > 0)
         {
-            // ...4F 4B -> 79, 75
-            String c = String(_dwinSerial->read(), HEX);
-            c.toUpperCase();
-            buffer.concat(c);
-            if (buffer.endsWith("4F4B"))
+            if (frame.push(_dwinSerial->read()))
                 break;
         }
     }
-
-    handle();
 }
 
 String DWIN::checkHex(byte currentNo)

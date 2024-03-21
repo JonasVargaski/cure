@@ -2,6 +2,7 @@
 #define DWIN_H
 
 #include "Arduino.h"
+#include "DWIN_FRAME.h"
 
 class DWIN
 {
