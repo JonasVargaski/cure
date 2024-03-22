@@ -2,8 +2,7 @@
 #define _APP_UTILS_H_
 #include "Arduino.h"
 
-String hexToStr(const unsigned long &h, const byte &l = 8)
-{
+String hexToStr(const unsigned long &h, const byte &l = 8) {
   String s;
   s = String(h, HEX);
   s.toUpperCase();
@@ -11,13 +10,11 @@ String hexToStr(const unsigned long &h, const byte &l = 8)
   return s;
 }
 
-uint32_t random32()
-{
+uint32_t random32() {
   return ((uint32_t)random(0xFFFF) << 16) | random(0xFFFF);
 }
 
-String randomUUID()
-{
+String randomUUID() {
   char uuid[37];
   uint32_t a = random32();
   uint32_t b = random32();

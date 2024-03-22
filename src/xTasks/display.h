@@ -2,17 +2,16 @@
 #define _TASK_DISPLAY_
 
 #include <Arduino.h>
+#include <DWIN.h>
 #include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 #include <freertos/semphr.h>
+#include <freertos/task.h>
 
 #include "global.h"
-#include <DWIN.h>
 
 TickType_t xLastWakeTime = 0;
 
-void onHMIEvent(DwinFrame *frame)
-{
+void onHMIEvent(DwinFrame *frame) {
   frame->print();
 
   uint16_t vp = frame->getVPAddress();
@@ -31,15 +30,12 @@ void onHMIEvent(DwinFrame *frame)
   xLastWakeTime = 0;
 }
 
-void xTaskDisplay(void *parameter)
-{
+void xTaskDisplay(void *parameter) {
   DWIN hmi(Serial2, 16, 17, 115200, 35);
   hmi.hmiCallBack(onHMIEvent);
 
-  while (1)
-  {
-    if (xTaskGetTickCount() - xLastWakeTime >= pdMS_TO_TICKS(1000))
-    {
+  while (1) {
+    if (xTaskGetTickCount() - xLastWakeTime >= pdMS_TO_TICKS(1000)) {
       hmi.setVPWord(temperatureSensor.getVp(), temperatureSensor.getValue());
       hmi.setVPWord(humiditySensor.getVp(), humiditySensor.getValue());
       hmi.setVPWord(temperatureSetPoint.getVp(), temperatureSetPoint.getValue());

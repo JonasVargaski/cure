@@ -5,15 +5,13 @@
 #include <Preferences.h>
 #include <Wire.h>
 
+#include "Adafruit_ADS1015.h"
 #include "model/moving-average.h"
 #include "model/persistent-variable.h"
-
-#include "Adafruit_ADS1015.h"
 
 #define pinCount 8
 
 SemaphoreHandle_t variableMutex;
-Preferences preferences;
 
 // Global variables
 MovingAverageModel temperatureSensor(0x1002, 6);

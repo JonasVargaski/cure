@@ -5,9 +5,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
-class PersistentVariable
-{
-private:
+class PersistentVariable {
+  private:
   SemaphoreHandle_t *mutex;
 
   uint16_t vp;
@@ -15,38 +14,36 @@ private:
   int minValue;
   int maxValue;
 
-public:
-  PersistentVariable(uint16_t _vp, int _minValue, int _maxValue, SemaphoreHandle_t *_mutex) : vp(_vp), minValue(_minValue), maxValue(_maxValue), mutex(_mutex) {}
-
-  void begin()
-  {
-    Preferences preferences;
-    preferences.begin("VP", true);
-    value = preferences.getInt(std::to_string(vp).c_str(), minValue);
-    preferences.end();
+  public:
+  PersistentVariable(uint16_t _vp, int _minValue, int _maxValue,
+                     SemaphoreHandle_t *_mutex)
+      : vp(_vp), minValue(_minValue), maxValue(_maxValue), mutex(_mutex) {
   }
 
-  void setValue(int newValue)
-  {
-    if (xSemaphoreTake(*mutex, portMAX_DELAY) == pdTRUE)
-    {
-      value = newValue >= maxValue ? maxValue : newValue <= minValue ? minValue
-                                                                     : newValue;
+  void begin(Preferences *prefs) {
+    value = minValue;
+
+    if (prefs != nullptr)
+      value = prefs->getInt(std::to_string(vp).c_str(), minValue);
+  }
+
+  void setValue(int newValue) {
+    int changedValue = constrain(newValue, minValue, maxValue);
+    if (changedValue != value && xSemaphoreTake(*mutex, portMAX_DELAY) == pdTRUE) {
+      value = changedValue;
       Preferences preferences;
       preferences.begin("VP", false);
-      preferences.putInt(std::to_string(vp).c_str(), newValue);
+      preferences.putInt(std::to_string(vp).c_str(), changedValue);
       preferences.end();
       xSemaphoreGive(*mutex);
     }
   }
 
-  int getValue()
-  {
+  int getValue() {
     return value;
   }
 
-  u_int16_t getVp()
-  {
+  u_int16_t getVp() {
     return vp;
   }
 };

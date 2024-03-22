@@ -5,53 +5,44 @@
 
 #include "Arduino.h"
 
-class DwinFrame
-{
-private:
+class DwinFrame {
+  private:
   int size;
   int currentIndex;
 
-public:
+  public:
   byte *array;
-  DwinFrame(int arraySize)
-  {
+  DwinFrame(int arraySize) {
     size = arraySize;
     currentIndex = 0;
     array = new byte[size];
-    for (int i = 0; i < size; i++)
-    {
+    for (int i = 0; i < size; i++) {
       array[i] = 0;
     }
   }
 
-  ~DwinFrame()
-  {
+  ~DwinFrame() {
     delete[] array;
   }
 
   // (5A A5) (0C) [83] [10 00] [04] [00 00 00 59 00 19 00 00]
-  bool isValid()
-  {
+  bool isValid() {
     return (array[0] == 0x5A && array[1] == 0xA5 && array[2] == (currentIndex - 3));
   }
 
-  bool push(byte data)
-  {
-    if (currentIndex >= size)
-    {
+  bool push(byte data) {
+    if (currentIndex >= size) {
       Serial.print(F("[DwinFrame] Overflow error!"));
       return false;
     }
 
-    if (array[0] != 0x5A)
-    {
+    if (array[0] != 0x5A) {
       array[0] = data;
       currentIndex = 1;
       return false;
     }
 
-    if (currentIndex == 1 && data != 0xA5)
-    {
+    if (currentIndex == 1 && data != 0xA5) {
       currentIndex = 0;
       array[0] = data;
       return false;
@@ -63,32 +54,28 @@ public:
   }
 
   // [5A A5] [0C] (83) [10 00] [04] [00 00 00 59 00 19 00 00]
-  char getInstruction()
-  {
+  char getInstruction() {
     if (array[3] == 0x82)
-      return 'W'; // write
+      return 'W';  // write
     if (array[3] == 0x83)
-      return 'R'; // read
+      return 'R';  // read
     return '-';
   }
 
   // [5A A5] [0C] [83] (10 00) [04] [00 00 00 59 00 19 00 00]
-  uint16_t getVPAddress()
-  {
+  uint16_t getVPAddress() {
     return isValid() ? (uint16_t)(array[4] << 8) | array[5] : 0;
   }
 
   // [5A A5] [0C] [83] [10 00] (04) [00 00 00 59 00 19 00 00]
-  int getDataLength()
-  {
+  int getDataLength() {
     if (!isValid())
       return 0;
     return (int)array[6];
   }
 
   // [5A A5] [0C] [83] [10 00] [04] (00 00 00 59 00 19 00 00)
-  uint16_t getWorldValue(int position = 0)
-  {
+  uint16_t getWorldValue(int position = 0) {
     if (!isValid() || position < 0 || position > getDataLength())
       return 0;
 
@@ -98,8 +85,7 @@ public:
 
   // [5A A5] [0C] (83) [10 00] [04] (00 00 00 59 00 19 00 00)
   // [5A A5] [03] [82] (4F 4B)
-  String getTextValue()
-  {
+  String getTextValue() {
     String value = "";
 
     if (!isValid())
@@ -113,8 +99,7 @@ public:
     return value;
   }
 
-  void print()
-  {
+  void print() {
     Serial.print(F("[DEBUG frame] Valid: "));
     Serial.print(isValid() ? "true" : "false");
     Serial.print(F(", Cmd: "));
@@ -137,14 +122,12 @@ public:
     Serial.println("]");
   }
 
-  void clear()
-  {
+  void clear() {
     currentIndex = 0;
-    for (int i = 0; i < size; i++)
-    {
+    for (int i = 0; i < size; i++) {
       array[i] = 0;
     }
   }
 };
 
-#endif // DWIN_FRAME_H
+#endif  // DWIN_FRAME_H

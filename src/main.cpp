@@ -7,31 +7,33 @@
 #include "xTasks/display.h"
 #include "xTasks/sensors.h"
 
-void setup()
-{
+void setup() {
   Serial.begin(115200);
-  delay(500);
 
-  for (int i = 0; i < pinCount; i++)
-  {
+  for (int i = 0; i < pinCount; i++) {
     pinMode(pins[i], OUTPUT);
     digitalWrite(pins[i], LOW);
   }
 
-  temperatureSetPoint.begin();
-  humiditySetPoint.begin();
+  Preferences preferences;
+  preferences.begin("VP", true);
 
-  fanSetPoint.begin();
-  buzzerSetPoint.begin();
-  motorSetPoint.begin();
+  temperatureSetPoint.begin(&preferences);
+  humiditySetPoint.begin(&preferences);
+  fanSetPoint.begin(&preferences);
+  buzzerSetPoint.begin(&preferences);
+  motorSetPoint.begin(&preferences);
+
+  preferences.end();
 
   variableMutex = xSemaphoreCreateMutex();
+
+  delay(500);
 
   xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 1, NULL, 0);
   xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 4096, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(xTaskDisplay, "displayTask", 4096, NULL, 2, NULL, 1);
 }
 
-void loop()
-{
+void loop() {
 }
