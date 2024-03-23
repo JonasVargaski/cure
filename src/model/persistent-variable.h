@@ -17,14 +17,14 @@ class PersistentVariable {
   public:
   PersistentVariable(uint16_t _vp, int _minValue, int _maxValue,
                      SemaphoreHandle_t *_mutex)
-      : vp(_vp), minValue(_minValue), maxValue(_maxValue), mutex(_mutex) {
+      : value(0), vp(_vp), minValue(_minValue), maxValue(_maxValue), mutex(_mutex) {
   }
 
-  void begin(Preferences *prefs) {
-    value = minValue;
-
-    if (prefs != nullptr)
-      value = prefs->getInt(std::to_string(vp).c_str(), minValue);
+  void retrieveValue(Preferences *prefs) {
+    if (prefs != nullptr) {
+      int restoredValue = prefs->getInt(std::to_string(vp).c_str(), minValue);
+      value = constrain(restoredValue, minValue, maxValue);
+    }
   }
 
   void setValue(int newValue) {

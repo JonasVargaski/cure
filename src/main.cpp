@@ -18,11 +18,11 @@ void setup() {
   Preferences preferences;
   preferences.begin("VP", true);
 
-  temperatureSetPoint.begin(&preferences);
-  humiditySetPoint.begin(&preferences);
-  fanSetPoint.begin(&preferences);
-  buzzerSetPoint.begin(&preferences);
-  motorSetPoint.begin(&preferences);
+  temperatureSetPoint.retrieveValue(&preferences);
+  humiditySetPoint.retrieveValue(&preferences);
+  fanSetPoint.retrieveValue(&preferences);
+  buzzerSetPoint.retrieveValue(&preferences);
+  motorSetPoint.retrieveValue(&preferences);
 
   preferences.end();
 
