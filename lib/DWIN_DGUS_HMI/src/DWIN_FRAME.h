@@ -5,6 +5,9 @@
 
 #include "Arduino.h"
 
+#define MIN_ASCII 32
+#define MAX_ASCII 255
+
 class DwinFrame {
   private:
   int size;
@@ -93,8 +96,11 @@ class DwinFrame {
 
     int startIndex = array[3] == 0x83 ? 7 : 4;
 
-    for (int i = startIndex; i < currentIndex; i++)
-      value.concat(char(array[i]));
+    for (int i = startIndex; i < currentIndex; i++) {
+      if (array[i] >= MIN_ASCII && array[i] <= MAX_ASCII) {
+        value.concat(char(array[i]));
+      }
+    }
 
     return value;
   }
@@ -105,7 +111,7 @@ class DwinFrame {
     Serial.print(F(", Cmd: "));
     Serial.print(getInstruction());
     Serial.print(F(", VP: "));
-    Serial.printf("%02X%02X - 0x%s", highByte(getVPAddress()), lowByte(getVPAddress()), String(getVPAddress(), HEX));
+    Serial.printf("0x%s (%02X%02X)", String(getVPAddress(), HEX), highByte(getVPAddress()), lowByte(getVPAddress()));
     Serial.print(F(", DataLength: "));
     Serial.print(getDataLength());
 

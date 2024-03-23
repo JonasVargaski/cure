@@ -7,9 +7,6 @@
 #define CMD_WRITE 0x82
 #define CMD_READ 0x83
 
-#define MIN_ASCII 32
-#define MAX_ASCII 255
-
 #define CMD_READ_TIMEOUT 50
 
 DWIN::DWIN(HardwareSerial &port, uint8_t receivePin, uint8_t transmitPin, long baud, int bufferSize) : _dwinSerial(&port), frame(bufferSize) {
@@ -198,8 +195,9 @@ DwinFrame *DWIN::readDWIN() {
   TickType_t xLastWakeTime = xTaskGetTickCount();
   while (xTaskGetTickCount() - xLastWakeTime < pdMS_TO_TICKS(CMD_READ_TIMEOUT)) {
     if (_dwinSerial->available() > 0) {
-      if (frame.push(_dwinSerial->read()))
+      if (frame.push(_dwinSerial->read())) {
         break;
+      }
     }
   }
   return &frame;
@@ -211,9 +209,9 @@ DwinFrame *DWIN::handle() {
     frame.clear();
     while (_dwinSerial->available() > 0) {
       if (frame.push(_dwinSerial->read())) {
-        if (frame.getInstruction() == 'R')  // no handle responses
+        if (frame.getInstruction() == 'R') {  // no handle responses
           listenerCallback(&frame);
-
+        }
         break;
       }
     }
