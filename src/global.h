@@ -8,6 +8,7 @@
 #include "Adafruit_ADS1015.h"
 #include "model/bool_addressed_variable_model.h"
 #include "model/sensor_input_moving_average_model.h"
+#include "model/text_addressed_variable_model.h"
 #include "model/uint16_addressed_variable_model.h"
 
 #define pinCount 8
@@ -39,6 +40,9 @@ Uint16StorageModel alarmReactiveParam(0x2001, &variableMutex, 1, 20);  // tempo 
 
 BoolStorageModel temperatureFanEnabled(0x1005, &variableMutex);
 BoolStorageModel injectionScrewEnabled(0x1007, &variableMutex);
+
+TextStorageModel wifiSsidParam(0x1100, &variableMutex, 20);
+TextStorageModel wifiPasswordParam(0x1150, &variableMutex, 20);
 
 // Pin map
 int pins[pinCount] = {13, 12, 14, 27, 26, 25, 33, 32};

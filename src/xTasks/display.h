@@ -26,6 +26,10 @@ void onHMIEvent(DwinFrame *frame) {
     alarmEnabled.setValue(frame->getWorldValue());
   else if (vp == injectionScrewEnabled.address())
     injectionScrewEnabled.setValue(frame->getWorldValue());
+  else if (vp == wifiSsidParam.address())
+    wifiSsidParam.setValue(frame->getTextValue().c_str());
+  else if (vp == wifiPasswordParam.address())
+    wifiPasswordParam.setValue(frame->getTextValue().c_str());
 
   xLastWakeTime = 0;
 }
@@ -43,6 +47,8 @@ void xTaskDisplay(void *parameter) {
       hmi.setVPWord(temperatureFanEnabled.address(), temperatureFanEnabled.value());
       hmi.setVPWord(alarmEnabled.address(), alarmEnabled.value());
       hmi.setVPWord(injectionScrewEnabled.address(), injectionScrewEnabled.value());
+      hmi.setText(wifiSsidParam.address(), wifiSsidParam.value());
+      hmi.setText(wifiPasswordParam.address(), wifiPasswordParam.value());
       xLastWakeTime = xTaskGetTickCount();
     }
 

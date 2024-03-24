@@ -12,9 +12,9 @@ class DwinFrame {
   private:
   int size;
   int currentIndex;
+  byte *array;
 
   public:
-  byte *array;
   DwinFrame(int arraySize) {
     size = arraySize;
     currentIndex = 0;

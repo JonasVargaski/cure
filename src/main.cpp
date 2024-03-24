@@ -23,6 +23,8 @@ void setup() {
   temperatureFanEnabled.loadValue(&preferences);
   alarmEnabled.loadValue(&preferences);
   injectionScrewEnabled.loadValue(&preferences);
+  wifiSsidParam.loadValue(&preferences);
+  wifiPasswordParam.loadValue(&preferences);
 
   preferences.end();
 
