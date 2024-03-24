@@ -14,20 +14,12 @@ void setup() {
 
   Preferences preferences;
   preferences.begin("VP", true);
-
-  temperatureSetPoint.loadValue(&preferences);
-  humiditySetPoint.loadValue(&preferences);
-  temperatureFanEnabled.loadValue(&preferences);
-  injectionScrewEnabled.loadValue(&preferences);
-
-  wifiSsidParam.loadValue(&preferences);
-  wifiPasswordParam.loadValue(&preferences);
-
-  alarmEnabled.loadValue(&preferences);
-  alarmTemperatureDiffParam.loadValue(&preferences);
-  alarmHumidityDiffParam.loadValue(&preferences);
-  alarmReactiveParam.loadValue(&preferences);
-
+  for (Uint16StorageModel* obj : uint16StorageVariables)
+    obj->loadValue(&preferences);
+  for (BoolStorageModel* obj : boolStorageVariables)
+    obj->loadValue(&preferences);
+  for (TextStorageModel* obj : textStorageVariables)
+    obj->loadValue(&preferences);
   preferences.end();
 
   variableMutex = xSemaphoreCreateMutex();
@@ -35,6 +27,7 @@ void setup() {
   outputMutex = xSemaphoreCreateMutex();
 
   delay(500);
+  randomSeed(millis());
 
   xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 1, NULL, 0);
   xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 4096, NULL, 1, NULL, 1);

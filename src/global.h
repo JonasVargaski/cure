@@ -10,6 +10,7 @@
 #include "model/sensor_input_moving_average_model.h"
 #include "model/text_addressed_variable_model.h"
 #include "model/uint16_addressed_variable_model.h"
+#include "vector"
 
 SemaphoreHandle_t variableMutex;
 SemaphoreHandle_t sensorMutex;
@@ -34,5 +35,25 @@ BoolStorageModel injectionScrewEnabled(0x1007, &variableMutex);
 
 TextStorageModel wifiSsidParam(0x1100, &variableMutex, 20);
 TextStorageModel wifiPasswordParam(0x1150, &variableMutex, 20);
+
+std::vector<Uint16StorageModel*> uint16StorageVariables = {
+    &temperatureSetPoint,
+    &humiditySetPoint,
+    &alarmReactiveParam,
+    &alarmHumidityDiffParam,
+    &alarmTemperatureDiffParam,
+};
+
+std::vector<BoolStorageModel*> boolStorageVariables = {
+    &alarmEnabled,
+    &alarmOutputState,
+    &temperatureFanEnabled,
+    &injectionScrewEnabled,
+};
+
+std::vector<TextStorageModel*> textStorageVariables = {
+    &wifiSsidParam,
+    &wifiPasswordParam,
+};
 
 #endif

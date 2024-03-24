@@ -9,58 +9,55 @@
 
 #include "global.h"
 
-TickType_t xLastWakeTime = 0;
-
-void onHMIEvent(DwinFrame *frame) {
+void onHMIEvent(DwinFrame* frame) {
   frame->print();
 
   uint16_t vp = frame->getVPAddress();
 
-  if (vp == temperatureSetPoint.address())
-    temperatureSetPoint.setValueSync(frame->getWorldValue());
-  else if (vp == humiditySetPoint.address())
-    humiditySetPoint.setValueSync(frame->getWorldValue());
-  else if (vp == temperatureFanEnabled.address())
-    temperatureFanEnabled.setValueSync(frame->getWorldValue());
-  else if (vp == injectionScrewEnabled.address())
-    injectionScrewEnabled.setValueSync(frame->getWorldValue());
-  else if (vp == wifiSsidParam.address())
-    wifiSsidParam.setValueSync(frame->getTextValue().c_str());
-  else if (vp == wifiPasswordParam.address())
-    wifiPasswordParam.setValueSync(frame->getTextValue().c_str());
-
-  else if (vp == alarmEnabled.address())
-    alarmEnabled.setValueSync(frame->getWorldValue());
-  else if (vp == alarmTemperatureDiffParam.address())
-    alarmTemperatureDiffParam.setValueSync(frame->getWorldValue());
-  else if (vp == alarmHumidityDiffParam.address())
-    alarmHumidityDiffParam.setValueSync(frame->getWorldValue());
-  else if (vp == alarmReactiveParam.address())
-    alarmReactiveParam.setValueSync(frame->getWorldValue());
-
-  xLastWakeTime = 0;
+  for (Uint16StorageModel* obj : uint16StorageVariables) {
+    if (obj->address() == vp) {
+      obj->resetTimeUpdate();
+      return obj->setValueSync(frame->getWorldValue());
+    }
+  }
+  for (BoolStorageModel* obj : boolStorageVariables) {
+    if (obj->address() == vp) {
+      obj->resetTimeUpdate();
+      return obj->setValueSync(frame->getWorldValue());
+    }
+  }
+  for (TextStorageModel* obj : textStorageVariables) {
+    if (obj->address() == vp) {
+      obj->resetTimeUpdate();
+      return obj->setValueSync(frame->getTextValue().c_str());
+    }
+  }
 }
 
-void xTaskDisplay(void *parameter) {
+void xTaskDisplay(void* parameter) {
   DWIN hmi(Serial2, 16, 17, 115200, 35);
   hmi.hmiCallBack(onHMIEvent);
+
+  TickType_t xLastWakeTime = 0;
 
   while (1) {
     if (xTaskGetTickCount() - xLastWakeTime >= pdMS_TO_TICKS(1000)) {
       hmi.setVPWord(temperatureSensor.address(), temperatureSensor.value());
       hmi.setVPWord(humiditySensor.address(), humiditySensor.value());
-      hmi.setVPWord(temperatureSetPoint.address(), temperatureSetPoint.value());
-      hmi.setVPWord(humiditySetPoint.address(), humiditySetPoint.value());
-      hmi.setVPWord(temperatureFanEnabled.address(), temperatureFanEnabled.value());
-      hmi.setVPWord(alarmEnabled.address(), alarmEnabled.value());
-      hmi.setVPWord(alarmTemperatureDiffParam.address(), alarmTemperatureDiffParam.value());
-      hmi.setVPWord(alarmHumidityDiffParam.address(), alarmHumidityDiffParam.value());
-      hmi.setVPWord(alarmReactiveParam.address(), alarmReactiveParam.value());
-      hmi.setVPWord(injectionScrewEnabled.address(), injectionScrewEnabled.value());
-      hmi.setText(wifiSsidParam.address(), wifiSsidParam.value());
-      hmi.setText(wifiPasswordParam.address(), wifiPasswordParam.value());
-
       xLastWakeTime = xTaskGetTickCount();
+    }
+
+    for (Uint16StorageModel* obj : uint16StorageVariables) {
+      if (obj->shouldUpdateDisplay())
+        hmi.setVPWord(obj->address(), obj->value());
+    }
+    for (BoolStorageModel* obj : boolStorageVariables) {
+      if (obj->shouldUpdateDisplay())
+        hmi.setVPWord(obj->address(), obj->value());
+    }
+    for (TextStorageModel* obj : textStorageVariables) {
+      if (obj->shouldUpdateDisplay())
+        hmi.setText(obj->address(), obj->value());
     }
 
     hmi.handle();
