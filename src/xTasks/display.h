@@ -16,16 +16,16 @@ void onHMIEvent(DwinFrame *frame) {
 
   uint16_t vp = frame->getVPAddress();
 
-  if (vp == temperatureSetPoint.getVp())
+  if (vp == temperatureSetPoint.address())
     temperatureSetPoint.setValue(frame->getWorldValue());
-  else if (vp == humiditySetPoint.getVp())
+  else if (vp == humiditySetPoint.address())
     humiditySetPoint.setValue(frame->getWorldValue());
-  else if (vp == fanSetPoint.getVp())
-    fanSetPoint.setValue(frame->getWorldValue());
-  else if (vp == buzzerSetPoint.getVp())
-    buzzerSetPoint.setValue(frame->getWorldValue());
-  else if (vp == motorSetPoint.getVp())
-    motorSetPoint.setValue(frame->getWorldValue());
+  else if (vp == temperatureFanEnabled.address())
+    temperatureFanEnabled.setValue(frame->getWorldValue());
+  else if (vp == alarmEnabled.address())
+    alarmEnabled.setValue(frame->getWorldValue());
+  else if (vp == injectionScrewEnabled.address())
+    injectionScrewEnabled.setValue(frame->getWorldValue());
 
   xLastWakeTime = 0;
 }
@@ -36,13 +36,13 @@ void xTaskDisplay(void *parameter) {
 
   while (1) {
     if (xTaskGetTickCount() - xLastWakeTime >= pdMS_TO_TICKS(1000)) {
-      hmi.setVPWord(temperatureSensor.getVp(), temperatureSensor.getValue());
-      hmi.setVPWord(humiditySensor.getVp(), humiditySensor.getValue());
-      hmi.setVPWord(temperatureSetPoint.getVp(), temperatureSetPoint.getValue());
-      hmi.setVPWord(humiditySetPoint.getVp(), humiditySetPoint.getValue());
-      hmi.setVPWord(fanSetPoint.getVp(), fanSetPoint.getValue());
-      hmi.setVPWord(buzzerSetPoint.getVp(), buzzerSetPoint.getValue());
-      hmi.setVPWord(motorSetPoint.getVp(), motorSetPoint.getValue());
+      hmi.setVPWord(temperatureSensor.address(), temperatureSensor.value());
+      hmi.setVPWord(humiditySensor.address(), humiditySensor.value());
+      hmi.setVPWord(temperatureSetPoint.address(), temperatureSetPoint.value());
+      hmi.setVPWord(humiditySetPoint.address(), humiditySetPoint.value());
+      hmi.setVPWord(temperatureFanEnabled.address(), temperatureFanEnabled.value());
+      hmi.setVPWord(alarmEnabled.address(), alarmEnabled.value());
+      hmi.setVPWord(injectionScrewEnabled.address(), injectionScrewEnabled.value());
       xLastWakeTime = xTaskGetTickCount();
     }
 

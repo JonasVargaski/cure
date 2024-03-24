@@ -26,11 +26,11 @@ void xTaskControl(void *parameter) {
     vTaskDelay(pdMS_TO_TICKS(100));
     digitalWrite(pins[1], LOW);
 
-    digitalWrite(pins[3], !fanSetPoint.getValue());
-    digitalWrite(pins[5], !buzzerSetPoint.getValue());
-    digitalWrite(pins[7], !motorSetPoint.getValue());
+    digitalWrite(pins[3], temperatureFanEnabled.value());
+    digitalWrite(pins[5], alarmEnabled.value());
+    digitalWrite(pins[7], injectionScrewEnabled.value());
 
-    ledcWrite(LEDC_CHANNEL, map(temperatureSetPoint.getValue(), 70, 160, 0, 1023));
+    ledcWrite(LEDC_CHANNEL, map(temperatureSetPoint.value(), 70, 160, 0, 1023));
   }
 }
 

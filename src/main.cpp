@@ -18,15 +18,16 @@ void setup() {
   Preferences preferences;
   preferences.begin("VP", true);
 
-  temperatureSetPoint.retrieveValue(&preferences);
-  humiditySetPoint.retrieveValue(&preferences);
-  fanSetPoint.retrieveValue(&preferences);
-  buzzerSetPoint.retrieveValue(&preferences);
-  motorSetPoint.retrieveValue(&preferences);
+  temperatureSetPoint.loadValue(&preferences);
+  humiditySetPoint.loadValue(&preferences);
+  temperatureFanEnabled.loadValue(&preferences);
+  alarmEnabled.loadValue(&preferences);
+  injectionScrewEnabled.loadValue(&preferences);
 
   preferences.end();
 
   variableMutex = xSemaphoreCreateMutex();
+  sensorMutex = xSemaphoreCreateMutex();
 
   delay(500);
 

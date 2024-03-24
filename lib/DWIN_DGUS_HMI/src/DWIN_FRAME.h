@@ -97,7 +97,7 @@ class DwinFrame {
     int startIndex = array[3] == 0x83 ? 7 : 4;
 
     for (int i = startIndex; i < currentIndex; i++) {
-      if (array[i] >= MIN_ASCII && array[i] <= MAX_ASCII) {
+      if (array[i] >= MIN_ASCII && array[i] < MAX_ASCII) {
         value.concat(char(array[i]));
       }
     }

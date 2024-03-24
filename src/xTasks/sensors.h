@@ -16,36 +16,38 @@ void xTaskSensors(void *parameter) {
   ads.setGain(GAIN_TWOTHIRDS);  // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)
   ads.begin();
 
-  int count;
+  temperatureSensor.setConversionCallback([](uint16_t value) {
+    float voltage = value * 0.1875 / 1000;  // 0.1875V por LSB para o ADS1115
+    float temperature = voltage * 100.0;    // 100mV por grau Celsius para o LM35
+    return temperature;
+  });
+
+  humiditySensor.setConversionCallback([](uint16_t value) {
+    float voltage = value * 0.1875 / 1000;  // 0.1875V por LSB para o ADS1115
+    float temperature = voltage * 100.0;    // 100mV por grau Celsius para o LM35
+    float lm35_temperature_fahrenheit = (temperature * 9.0) / 5.0 + 32.0;
+    return lm35_temperature_fahrenheit;
+  });
+
+  TickType_t xLastWakeTime = 0;
 
   while (1) {
     uint16_t analogValue = ads.readADC_SingleEnded(0);
-    float voltage = analogValue * 0.1875 / 1000;  // 0.1875V por LSB para o ADS1115
 
-    float temperature = voltage * 100.0;  // 100mV por grau Celsius para o LM35
-    float lm35_temperature_fahrenheit = (temperature * 9.0) / 5.0 + 32.0;
+    temperatureSensor.addValue(analogValue);
+    humiditySensor.addValue(analogValue);
 
-    temperatureSensor.setValue(temperature);
-    humiditySensor.setValue(lm35_temperature_fahrenheit);
-
-    count++;
-
-    // DEBUG SERIAL LEITURAS 10 secs
-    if (count > 10) {
-      count = 0;
-
+    if (xTaskGetTickCount() - xLastWakeTime >= pdMS_TO_TICKS(6000)) {
       Serial.print("[DEBUG sensors] a0 = ");
-      Serial.print(temperatureSensor.getValue());
-      Serial.print(" | ");
-      Serial.print(voltage, 3);
-      Serial.print("V | ");
-      Serial.print(temperature, 2);
+      Serial.print(temperatureSensor.value(), 2);
       Serial.print("°C | ");
-      Serial.print(lm35_temperature_fahrenheit, 2);
-      Serial.println("°F");
+      Serial.print(humiditySensor.value(), 2);
+      Serial.print("°F | ");
+      Serial.println(temperatureSensor.isComplete() ? "done" : "reading");
+      xLastWakeTime = xTaskGetTickCount();
     }
 
-    vTaskDelay(pdMS_TO_TICKS(500));
+    vTaskDelay(pdMS_TO_TICKS(200));
   }
 }
 
