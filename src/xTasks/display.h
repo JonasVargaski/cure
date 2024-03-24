@@ -17,19 +17,26 @@ void onHMIEvent(DwinFrame *frame) {
   uint16_t vp = frame->getVPAddress();
 
   if (vp == temperatureSetPoint.address())
-    temperatureSetPoint.setValue(frame->getWorldValue());
+    temperatureSetPoint.setValueSync(frame->getWorldValue());
   else if (vp == humiditySetPoint.address())
-    humiditySetPoint.setValue(frame->getWorldValue());
+    humiditySetPoint.setValueSync(frame->getWorldValue());
   else if (vp == temperatureFanEnabled.address())
-    temperatureFanEnabled.setValue(frame->getWorldValue());
-  else if (vp == alarmEnabled.address())
-    alarmEnabled.setValue(frame->getWorldValue());
+    temperatureFanEnabled.setValueSync(frame->getWorldValue());
   else if (vp == injectionScrewEnabled.address())
-    injectionScrewEnabled.setValue(frame->getWorldValue());
+    injectionScrewEnabled.setValueSync(frame->getWorldValue());
   else if (vp == wifiSsidParam.address())
-    wifiSsidParam.setValue(frame->getTextValue().c_str());
+    wifiSsidParam.setValueSync(frame->getTextValue().c_str());
   else if (vp == wifiPasswordParam.address())
-    wifiPasswordParam.setValue(frame->getTextValue().c_str());
+    wifiPasswordParam.setValueSync(frame->getTextValue().c_str());
+
+  else if (vp == alarmEnabled.address())
+    alarmEnabled.setValueSync(frame->getWorldValue());
+  else if (vp == alarmTemperatureDiffParam.address())
+    alarmTemperatureDiffParam.setValueSync(frame->getWorldValue());
+  else if (vp == alarmHumidityDiffParam.address())
+    alarmHumidityDiffParam.setValueSync(frame->getWorldValue());
+  else if (vp == alarmReactiveParam.address())
+    alarmReactiveParam.setValueSync(frame->getWorldValue());
 
   xLastWakeTime = 0;
 }
@@ -46,9 +53,13 @@ void xTaskDisplay(void *parameter) {
       hmi.setVPWord(humiditySetPoint.address(), humiditySetPoint.value());
       hmi.setVPWord(temperatureFanEnabled.address(), temperatureFanEnabled.value());
       hmi.setVPWord(alarmEnabled.address(), alarmEnabled.value());
+      hmi.setVPWord(alarmTemperatureDiffParam.address(), alarmTemperatureDiffParam.value());
+      hmi.setVPWord(alarmHumidityDiffParam.address(), alarmHumidityDiffParam.value());
+      hmi.setVPWord(alarmReactiveParam.address(), alarmReactiveParam.value());
       hmi.setVPWord(injectionScrewEnabled.address(), injectionScrewEnabled.value());
       hmi.setText(wifiSsidParam.address(), wifiSsidParam.value());
       hmi.setText(wifiPasswordParam.address(), wifiPasswordParam.value());
+
       xLastWakeTime = xTaskGetTickCount();
     }
 

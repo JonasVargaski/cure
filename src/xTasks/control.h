@@ -7,6 +7,7 @@
 #include <freertos/task.h>
 
 #include "global.h"
+#include "model/timeout_model.h"
 
 #define LEDC_CHANNEL 0                     // Canal PWM
 #define LEDC_TIMER LEDC_TIMER_0            // Timer para o canal PWM
@@ -26,7 +27,7 @@
 #define injectionScrewA 12
 #define injectionScrewB 33
 
-void configureOutputs() {
+void resetOutputs() {
   int pins[8] = {alarmOutput, temperatureFanOutput, temperatureDamperAOutput, temperatureDamperBOutput, humidityDamperA, humidityDamperB, injectionScrewA, injectionScrewB};
   for (int i = 0; i < 8; i++) {
     pinMode(pins[i], OUTPUT);
@@ -35,17 +36,41 @@ void configureOutputs() {
 }
 
 void xTaskControl(void *parameter) {
+  TimeoutModel toggleAlarmTimer;
+  TimeoutModel resetAlarmTimer;
+
   ledcSetup(LEDC_CHANNEL, LEDC_FREQUENCY, 10);
   ledcAttachPin(LEDC_PIN, LEDC_CHANNEL);
+  ledcWrite(LEDC_CHANNEL, 512);
 
   while (1) {
-    vTaskDelay(pdMS_TO_TICKS(100));
-    digitalWrite(alarmOutput, HIGH);
+    // timers update
+    resetAlarmTimer.setDuration(alarmReactiveParam.value() * 1000 * 60);
+    toggleAlarmTimer.setDuration(900);
+    // end timers update
 
-    vTaskDelay(pdMS_TO_TICKS(100));
-    digitalWrite(alarmOutput, LOW);
+    // Alarm handler control
 
-    ledcWrite(LEDC_CHANNEL, map(temperatureSetPoint.value(), 70, 160, 0, 1023));
+    if (alarmEnabled.value()) {
+      resetAlarmTimer.reset();
+
+      if (toggleAlarmTimer.complete()) {
+        alarmOutputState.setValueSync(!alarmOutputState.value(), false);
+      }
+    } else {
+      if (toggleAlarmTimer.complete()) {
+        alarmOutputState.setValueSync(LOW, false);
+      }
+
+      if (resetAlarmTimer.complete()) {
+        alarmEnabled.setValueSync(true);
+      }
+    }
+
+    // Changes logical state of outputs
+    digitalWrite(alarmOutput, alarmOutputState.value());
+
+    vTaskDelay(pdMS_TO_TICKS(20));
   }
 }
 

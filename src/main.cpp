@@ -7,20 +7,10 @@
 #include "xTasks/display.h"
 #include "xTasks/sensors.h"
 
-#define alarmOutput 32
-#define temperatureFanOutput 13
-#define temperatureDamperAOutput 14
-#define temperatureDamperBOutput 26
-#define humidityDamperPwmOutput 15
-#define humidityDamperA 27
-#define humidityDamperB 25
-#define injectionScrewA 12
-#define injectionScrewB 33
-
 void setup() {
   Serial.begin(115200);
 
-  configureOutputs();
+  resetOutputs();
 
   Preferences preferences;
   preferences.begin("VP", true);
@@ -28,15 +18,21 @@ void setup() {
   temperatureSetPoint.loadValue(&preferences);
   humiditySetPoint.loadValue(&preferences);
   temperatureFanEnabled.loadValue(&preferences);
-  alarmEnabled.loadValue(&preferences);
   injectionScrewEnabled.loadValue(&preferences);
+
   wifiSsidParam.loadValue(&preferences);
   wifiPasswordParam.loadValue(&preferences);
+
+  alarmEnabled.loadValue(&preferences);
+  alarmTemperatureDiffParam.loadValue(&preferences);
+  alarmHumidityDiffParam.loadValue(&preferences);
+  alarmReactiveParam.loadValue(&preferences);
 
   preferences.end();
 
   variableMutex = xSemaphoreCreateMutex();
   sensorMutex = xSemaphoreCreateMutex();
+  outputMutex = xSemaphoreCreateMutex();
 
   delay(500);
 

@@ -11,7 +11,7 @@ class TextStorageModel : public AddressedVariable {
 
   public:
   TextStorageModel(uint16_t address, SemaphoreHandle_t* mutex, unsigned int size) : AddressedVariable(address, mutex) {
-    _size = size;
+    _size = size + 1;
     _value = new char[size];
   }
 
