@@ -7,13 +7,20 @@
 #include "xTasks/display.h"
 #include "xTasks/sensors.h"
 
+#define alarmOutput 32
+#define temperatureFanOutput 13
+#define temperatureDamperAOutput 14
+#define temperatureDamperBOutput 26
+#define humidityDamperPwmOutput 15
+#define humidityDamperA 27
+#define humidityDamperB 25
+#define injectionScrewA 12
+#define injectionScrewB 33
+
 void setup() {
   Serial.begin(115200);
 
-  for (int i = 0; i < pinCount; i++) {
-    pinMode(pins[i], OUTPUT);
-    digitalWrite(pins[i], LOW);
-  }
+  configureOutputs();
 
   Preferences preferences;
   preferences.begin("VP", true);

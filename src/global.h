@@ -11,19 +11,6 @@
 #include "model/text_addressed_variable_model.h"
 #include "model/uint16_addressed_variable_model.h"
 
-#define pinCount 8
-
-// pin map output
-#define alarmOutput 32
-#define temperatureFanOutput 13
-#define temperatureDamperAOutput 14
-#define temperatureDamperBOutput 26
-#define humidityDamperPwmOutput 15
-#define humidityDamperA 27
-#define humidityDamperB 25
-#define injectionScrewA 12
-#define injectionScrewB 33
-
 SemaphoreHandle_t variableMutex;
 SemaphoreHandle_t sensorMutex;
 
@@ -43,8 +30,5 @@ BoolStorageModel injectionScrewEnabled(0x1007, &variableMutex);
 
 TextStorageModel wifiSsidParam(0x1100, &variableMutex, 20);
 TextStorageModel wifiPasswordParam(0x1150, &variableMutex, 20);
-
-// Pin map
-int pins[pinCount] = {13, 12, 14, 27, 26, 25, 33, 32};
 
 #endif

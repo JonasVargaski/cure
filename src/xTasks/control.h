@@ -15,20 +15,35 @@
 #define LEDC_FREQUENCY 15000               // Frequência desejada em Hz
 #define LEDC_PIN 15
 
+// pin map output
+#define alarmOutput 32
+#define temperatureFanOutput 13
+#define temperatureDamperAOutput 14
+#define temperatureDamperBOutput 26
+#define humidityDamperPwmOutput 15
+#define humidityDamperA 27
+#define humidityDamperB 25
+#define injectionScrewA 12
+#define injectionScrewB 33
+
+void configureOutputs() {
+  int pins[8] = {alarmOutput, temperatureFanOutput, temperatureDamperAOutput, temperatureDamperBOutput, humidityDamperA, humidityDamperB, injectionScrewA, injectionScrewB};
+  for (int i = 0; i < 8; i++) {
+    pinMode(pins[i], OUTPUT);
+    digitalWrite(pins[i], LOW);
+  }
+}
+
 void xTaskControl(void *parameter) {
   ledcSetup(LEDC_CHANNEL, LEDC_FREQUENCY, 10);
   ledcAttachPin(LEDC_PIN, LEDC_CHANNEL);
 
   while (1) {
     vTaskDelay(pdMS_TO_TICKS(100));
-    digitalWrite(pins[1], HIGH);
+    digitalWrite(alarmOutput, HIGH);
 
     vTaskDelay(pdMS_TO_TICKS(100));
-    digitalWrite(pins[1], LOW);
-
-    digitalWrite(pins[3], temperatureFanEnabled.value());
-    digitalWrite(pins[5], alarmEnabled.value());
-    digitalWrite(pins[7], injectionScrewEnabled.value());
+    digitalWrite(alarmOutput, LOW);
 
     ledcWrite(LEDC_CHANNEL, map(temperatureSetPoint.value(), 70, 160, 0, 1023));
   }

@@ -8,8 +8,6 @@
 
 #include "global.h"
 
-#define ADC_16BIT_MAX 65536
-
 void xTaskSensors(void *parameter) {
   Adafruit_ADS1115 ads(0x48);
 
