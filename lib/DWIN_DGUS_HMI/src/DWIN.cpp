@@ -2,11 +2,6 @@
 
 #include <stdio.h>
 
-#define CMD_HEAD1 0x5A
-#define CMD_HEAD2 0xA5
-#define CMD_WRITE 0x82
-#define CMD_READ 0x83
-
 #define CMD_READ_TIMEOUT 50
 
 DWIN::DWIN(HardwareSerial &port, uint8_t receivePin, uint8_t transmitPin, long baud, int bufferSize) : _dwinSerial(&port), frame(bufferSize) {
