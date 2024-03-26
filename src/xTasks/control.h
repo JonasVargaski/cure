@@ -6,6 +6,7 @@
 #include <freertos/semphr.h>
 #include <freertos/task.h>
 
+#include "enums.h"
 #include "global.h"
 #include "model/timeout_model.h"
 
@@ -49,9 +50,59 @@ void xTaskControl(void *parameter) {
     toggleAlarmTimer.setDuration(900);
     // end timers update
 
-    // Alarm handler control
+    // Definition alarm section
 
-    if (alarmEnabled.value()) {
+    alarmFlags.SECURITY_MODE_HI = false;     // TODO: implement logic
+    alarmFlags.SECURITY_MODE_LOW = false;    // TODO: implement logic
+    alarmFlags.VENTILATION_FAILURE = false;  // TODO: read input
+    alarmFlags.ELECTRICAL_SUPPLY = false;    // TODO: read input
+
+    alarmFlags.TEMPERATURE_SENSOR_FAILURE = temperatureSensor.value() < 1;
+    alarmFlags.HUMIDITY_SENSOR_FAILURE = humiditySensor.value() < 1;
+
+    if ((temperatureSensor.value() - alarmTemperatureDiffParam.value()) > temperatureSetPoint.value()) {
+      alarmFlags.TEMPERATURE_LOW = false;
+      alarmFlags.TEMPERATURE_HIGH = true;
+    } else if ((temperatureSensor.value() + alarmTemperatureDiffParam.value()) < temperatureSetPoint.value()) {
+      alarmFlags.TEMPERATURE_LOW = true;
+      alarmFlags.TEMPERATURE_HIGH = false;
+    } else if ((alarmFlags.TEMPERATURE_LOW || alarmFlags.TEMPERATURE_HIGH) && abs(temperatureSensor.value() - alarmTemperatureDiffParam.value() - temperatureSetPoint.value()) <= 2) {
+      alarmFlags.TEMPERATURE_LOW = false;
+      alarmFlags.TEMPERATURE_HIGH = false;
+    }
+
+    if ((humiditySensor.value() - alarmHumidityDiffParam.value()) > humiditySetPoint.value()) {
+      alarmFlags.HUMIDITY_LOW = false;
+      alarmFlags.HUMIDITY_HIGH = true;
+    } else if ((humiditySensor.value() + alarmHumidityDiffParam.value()) < humiditySetPoint.value()) {
+      alarmFlags.HUMIDITY_LOW = true;
+      alarmFlags.HUMIDITY_HIGH = false;
+    } else if ((alarmFlags.HUMIDITY_LOW || alarmFlags.HUMIDITY_HIGH) && abs(humiditySensor.value() - alarmHumidityDiffParam.value() - humiditySetPoint.value()) <= 2) {
+      alarmFlags.HUMIDITY_LOW = false;
+      alarmFlags.HUMIDITY_HIGH = false;
+    }
+
+    // End definition alarms
+    bool shouldAlarm = false;
+
+    if (alarmFlags.VENTILATION_FAILURE && alarmVentilationTypeParam.value())
+      shouldAlarm = true;
+    else if (alarmFlags.ELECTRICAL_SUPPLY && alarmVentilationTypeParam.value())
+      shouldAlarm = true;
+    else if (alarmFlags.TEMPERATURE_HIGH && (alarmTemperatureTypeParam.value() == eAlarmEnableType::HIGH_VALUE || alarmTemperatureTypeParam.value() == eAlarmEnableType::ALL))
+      shouldAlarm = true;
+    else if (alarmFlags.TEMPERATURE_LOW && (alarmTemperatureTypeParam.value() == eAlarmEnableType::LOW_VALUE || alarmTemperatureTypeParam.value() == eAlarmEnableType::ALL))
+      shouldAlarm = true;
+    else if (alarmFlags.HUMIDITY_HIGH && (alarmHumidityTypeParam.value() == eAlarmEnableType::HIGH_VALUE || alarmHumidityTypeParam.value() == eAlarmEnableType::ALL))
+      shouldAlarm = true;
+    else if (alarmFlags.HUMIDITY_LOW && (alarmHumidityTypeParam.value() == eAlarmEnableType::LOW_VALUE || alarmHumidityTypeParam.value() == eAlarmEnableType::ALL))
+      shouldAlarm = true;
+    else if (alarmFlags.SECURITY_MODE_HI && (alarmSecurityTypeParam.value() == eAlarmEnableType::HIGH_VALUE || alarmSecurityTypeParam.value() == eAlarmEnableType::ALL))
+      shouldAlarm = true;
+    else if (alarmFlags.SECURITY_MODE_LOW && (alarmSecurityTypeParam.value() == eAlarmEnableType::LOW_VALUE || alarmSecurityTypeParam.value() == eAlarmEnableType::ALL))
+      shouldAlarm = true;
+
+    if (shouldAlarm && alarmEnabled.value()) {
       resetAlarmTimer.reset();
 
       if (toggleAlarmTimer.complete()) {
