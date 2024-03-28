@@ -37,13 +37,23 @@ SensorInputAverageModel humiditySensor(0x1003, &sensorMutex, 15);     // umidade
 Uint16StorageModel temperatureSetPoint(0x1002, &variableMutex, 70, 160);  // define qual a temperatura desejada
 Uint16StorageModel humiditySetPoint(0x1004, &variableMutex, 70, 140);     // define qual a umidade desejada
 
-Uint16StorageModel securityModeTemperatureDiffParam(0x1308, &variableMutex, 5, 100);  // diferença de ajuste/sensor de temperatura para entrar no modo de segurança (setar valor alto para desativar)
+Uint16StorageModel temperatureFanDiffParam(0x1308, &variableMutex, 1, 20);               // diferença entre ajuste/sensor de temperatura para acionador da ventoinha
+Uint16StorageModel injectionMachineDiffParam(0x1007, &variableMutex, 1, 20);             // diferença entre ajuste/sensor de temperatura para acionador da máquina injetora (depende da venoinha estar acionada)
+Uint16StorageModel humidityDamperDiffParam(0x1308, &variableMutex, 1, 20);               // diferença entre ajuste/sensor de humidade para acionador do flap de umidade
+Uint16StorageModel securityModeTemperatureDiffParam(0x1308, &variableMutex, 5, 100);     // diferença entre ajuste/sensor de temperatura para entrar no modo de segurança (setar valor alto para desativar)
+Uint16StorageModel humidityDamperEnableTimeParam(0x1308, &variableMutex, 60, 65535);     // [MILLIS] define tempo que o flap permanece ligado para controle em estágios
+Uint16StorageModel humidityDamperDisabledTimeParam(0x1308, &variableMutex, 0, 3600);     // [SECONDS] define tempo que o flap permanece desligado para controle em estágios
+Uint16StorageModel temperatureFanIntervalParam(0x1308, &variableMutex, 0, 3600);         // [SECONDS] tempo de intervalo entre acionamentos da ventoinha, conta a cada inversão de estado (evita falsos acionamentos por instabilidade de temperatura)
+Uint16StorageModel injectionMachineIntervalParam(0x1308, &variableMutex, 0, 7200);       // [SECONDS] tempo de intervalo entre acionamentos da injetora, conta a cada inversão de estado (evita encher a fornalha)
+Uint16StorageModel injectionMachineClearTimeParam(0x1308, &variableMutex, 0, 3600);      // [SECONDS] define tempo que a injetora permanece ligada após acionameto para limpeza (rosca A)
+Uint16StorageModel injectionMachineEnableTimeParam(0x1308, &variableMutex, 0, 18000);    // [SECONDS] define tempo que a injetora permanece ligada (rosca A e B)
+Uint16StorageModel injectionMachineDisabledTimeParam(0x1308, &variableMutex, 0, 18000);  // [SECONDS] define tempo que a injetora permanece desligada (rosca B e/ou A)
 
-BoolStorageModel alarmEnabled(0x1006, &variableMutex);           // controlar se alarme pode ligar
-BoolStorageModel temperatureFanEnabled(0x1005, &variableMutex);  // controlar se a venoinha pode ligar
-BoolStorageModel injectionScrewEnabled(0x1007, &variableMutex);  // controlar se a injetora pode ligar
+BoolStorageModel alarmEnabled(0x1006, &variableMutex);             // controlar se alarme pode ligar (0=NÃO, 1=SIM)
+BoolStorageModel temperatureFanEnabled(0x1005, &variableMutex);    // controlar se a venoinha pode ligar (0=NÃO, 1=SIM)
+BoolStorageModel injectionMachineEnabled(0x1007, &variableMutex);  // controlar se a injetora pode ligar (0=NÃO, 1=SIM)
 
-Uint16StorageModel alarmReactiveParam(0x1300, &variableMutex, 0, 600);        // [MINUTOS] contagem de tempo quando alarme está desligado para religar automaticamente (setar como 0 para desativar funcionalidade)
+Uint16StorageModel alarmReactiveParam(0x1300, &variableMutex, 0, 600);        // [MINUTES] contagem de tempo quando alarme está desligado para religar automaticamente (0=DESATIVADO)
 Uint16StorageModel alarmHumidityDiffParam(0x1301, &variableMutex, 3, 30);     // diferença de ajuste/sensor de humidade para acionar o alarme (o mesmo para alto e baixo, conforme configuração de 'alarmHumidityTypeParam')
 Uint16StorageModel alarmTemperatureDiffParam(0x1302, &variableMutex, 3, 30);  // diferença de ajuste/sensor de temperatura para acionar o alarme (o mesmo para alto e baixo, conforme configuração de 'alarmTemperatureTypeParam')
 
@@ -60,7 +70,7 @@ Uint16StorageModel wifiSignalQuality(0x1305, &variableMutex, 0, 100);        // 
 Uint16StorageModel connectionStatus(0x1305, &variableMutex, 0, 3);           // estado da conexão wifi/servidor do dispositivo (0=DESCONECTADO, 1=CONECTANDO, 2=CONECTADO_SEM_INTERNET, 3=CONECTADO)
 Uint16StorageModel remotePasswordParam(0x1303, &variableMutex, 1000, 9999);  // define a senha de acesso remoto ao controlador (utilizada para acessar app)
 
-std::vector<Uint16StorageModel*> uint16StorageVariables = {
+std::vector<Uint16StorageModel*> numberDisplayVariables = {
     &temperatureSetPoint,
     &humiditySetPoint,
     &alarmReactiveParam,
@@ -73,17 +83,27 @@ std::vector<Uint16StorageModel*> uint16StorageVariables = {
     &remotePasswordParam,
     &connectionStatus,
     &wifiSignalQuality,
+    &temperatureFanDiffParam,
+    &temperatureFanIntervalParam,
+    &humidityDamperDiffParam,
+    &humidityDamperEnableTimeParam,
+    &humidityDamperDisabledTimeParam,
+    &injectionMachineDiffParam,
+    &injectionMachineClearTimeParam,
+    &injectionMachineEnableTimeParam,
+    &injectionMachineDisabledTimeParam,
+    &injectionMachineIntervalParam,
 };
 
-std::vector<BoolStorageModel*> boolStorageVariables = {
+std::vector<BoolStorageModel*> booleanDisplayVariables = {
     &alarmEnabled,
     &temperatureFanEnabled,
-    &injectionScrewEnabled,
+    &injectionMachineEnabled,
     &alarmVentilationTypeParam,
     &alarmElectricalSupplyTypeParam,
 };
 
-std::vector<TextStorageModel*> textStorageVariables = {
+std::vector<TextStorageModel*> textDisplayVariables = {
     &wifiSsidParam,
     &wifiPasswordParam,
     &macAddress,

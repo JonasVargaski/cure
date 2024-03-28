@@ -25,11 +25,11 @@
 #define humidityDamperPwmOutput 15
 #define humidityDamperA 27
 #define humidityDamperB 25
-#define injectionScrewA 12
-#define injectionScrewB 33
+#define injectionMachineA 12
+#define injectionMachineB 33
 
 void resetOutputs() {
-  int pins[8] = {alarmOutput, temperatureFanOutput, temperatureDamperAOutput, temperatureDamperBOutput, humidityDamperA, humidityDamperB, injectionScrewA, injectionScrewB};
+  int pins[8] = {alarmOutput, temperatureFanOutput, temperatureDamperAOutput, temperatureDamperBOutput, humidityDamperA, humidityDamperB, injectionMachineA, injectionMachineB};
   for (int i = 0; i < 8; i++) {
     pinMode(pins[i], OUTPUT);
     digitalWrite(pins[i], LOW);

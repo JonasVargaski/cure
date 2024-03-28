@@ -14,19 +14,19 @@ void onHMIEvent(DwinFrame* frame) {
 
   uint16_t vp = frame->getVPAddress();
 
-  for (Uint16StorageModel* obj : uint16StorageVariables) {
+  for (Uint16StorageModel* obj : numberDisplayVariables) {
     if (obj->address() == vp) {
       obj->resetTimeUpdate();
       return obj->setValueSync(frame->getWorldValue());
     }
   }
-  for (BoolStorageModel* obj : boolStorageVariables) {
+  for (BoolStorageModel* obj : booleanDisplayVariables) {
     if (obj->address() == vp) {
       obj->resetTimeUpdate();
       return obj->setValueSync(frame->getWorldValue());
     }
   }
-  for (TextStorageModel* obj : textStorageVariables) {
+  for (TextStorageModel* obj : textDisplayVariables) {
     if (obj->address() == vp) {
       obj->resetTimeUpdate();
       return obj->setValueSync(frame->getTextValue().c_str());
@@ -47,15 +47,15 @@ void xTaskDisplay(void* parameter) {
       xLastWakeTime = xTaskGetTickCount();
     }
 
-    for (Uint16StorageModel* obj : uint16StorageVariables) {
+    for (Uint16StorageModel* obj : numberDisplayVariables) {
       if (obj->shouldUpdateDisplay())
         hmi.setVPWord(obj->address(), obj->value());
     }
-    for (BoolStorageModel* obj : boolStorageVariables) {
+    for (BoolStorageModel* obj : booleanDisplayVariables) {
       if (obj->shouldUpdateDisplay())
         hmi.setVPWord(obj->address(), obj->value());
     }
-    for (TextStorageModel* obj : textStorageVariables) {
+    for (TextStorageModel* obj : textDisplayVariables) {
       if (obj->shouldUpdateDisplay())
         hmi.setText(obj->address(), obj->value());
     }

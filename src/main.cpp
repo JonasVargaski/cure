@@ -14,11 +14,11 @@ void setup() {
 
   Preferences preferences;
   preferences.begin("VP", true);
-  for (Uint16StorageModel* obj : uint16StorageVariables)
+  for (Uint16StorageModel* obj : numberDisplayVariables)
     obj->loadValue(&preferences);
-  for (BoolStorageModel* obj : boolStorageVariables)
+  for (BoolStorageModel* obj : booleanDisplayVariables)
     obj->loadValue(&preferences);
-  for (TextStorageModel* obj : textStorageVariables)
+  for (TextStorageModel* obj : textDisplayVariables)
     obj->loadValue(&preferences);
   preferences.end();
 
