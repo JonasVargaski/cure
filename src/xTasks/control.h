@@ -124,8 +124,10 @@ void xTaskControl(void *parameter) {
       alarmEnabled.setValueSync(true);
     }
 
-    if (toggleAlarmTimer.complete())
+    if (toggleAlarmTimer.complete()) {
       digitalWrite(alarmOutput, shouldAlarm && alarmEnabled.value() ? !digitalRead(alarmOutput) : LOW);
+      alarmOutputState.setValueSync(digitalRead(alarmOutput), false);
+    }
 
 #pragma endregion
 
