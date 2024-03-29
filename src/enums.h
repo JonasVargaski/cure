@@ -8,4 +8,33 @@ enum eAlarmEnableType {
   ALL
 };
 
+enum eHumidityDamperStatus {
+  DAMPER_OFF,
+  DAMPER_OPEN,
+  DAMPER_CLOSE
+};
+
+enum eInjectionMachineStatus {
+  MACHINE_OFF,
+  MACHINE_ON,
+  MACHINE_CLEAR
+};
+
+enum eYesOrNo {
+  YESNO_NO,
+  YESNO_YES
+};
+
+enum eOnOff {
+  ONOFF_OFF,
+  ONOFF_ON
+};
+
+enum eWifiStatus {
+  DISCONNECTED,
+  CONNECTING,
+  WITHOUT_INTERNET,
+  CONNECTED
+};
+
 #endif
