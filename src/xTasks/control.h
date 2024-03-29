@@ -30,6 +30,8 @@
 
 void resetOutputs() {
   int pins[8] = {alarmOutput, temperatureFanOutput, temperatureDamperAOutput, temperatureDamperBOutput, humidityDamperA, humidityDamperB, injectionMachineA, injectionMachineB};
+  pinMode(15, OUTPUT);
+  digitalWrite(15, LOW);
   for (int i = 0; i < 8; i++) {
     pinMode(pins[i], OUTPUT);
     digitalWrite(pins[i], LOW);
@@ -38,25 +40,24 @@ void resetOutputs() {
 
 void xTaskControl(void *parameter) {
   TimeoutModel toggleAlarmTimer;
-  TimeoutModel resetAlarmTimer;
+  TimeoutModel reactiveAlarmTimer;
   TimeoutModel debug(1000);
 
   ledcSetup(LEDC_CHANNEL, LEDC_FREQUENCY, 10);
   ledcAttachPin(LEDC_PIN, LEDC_CHANNEL);
-  ledcWrite(LEDC_CHANNEL, 512);
+  ledcWrite(LEDC_CHANNEL, 120);
 
-  while (!temperatureSensor.isComplete() || !humiditySensor.isComplete()) {
+  while (!temperatureSensor.complete() || !humiditySensor.complete()) {
     vTaskDelay(pdMS_TO_TICKS(100));
   }
 
   while (1) {
-    // timers update
-    resetAlarmTimer.setDuration(alarmReactiveParam.value() * 1000 * 60);
+#pragma region TIMERS
+    reactiveAlarmTimer.setDuration(alarmReactiveParam.value() * 1000 * 60);
     toggleAlarmTimer.setDuration(900);
+#pragma endregion
 
-    // end timers update
-
-    // Definition alarm section
+#pragma region ALARMS
 
     alarmFlags.VENTILATION_FAILURE = false;  // TODO: read input
     alarmFlags.ELECTRICAL_SUPPLY = false;    // TODO: read input
@@ -70,7 +71,7 @@ void xTaskControl(void *parameter) {
     } else if (temperatureSetPoint.value() - temperatureSensor.value() >= securityModeTemperatureDiffParam.value()) {
       alarmFlags.SECURITY_MODE_LOW = true;
       alarmFlags.SECURITY_MODE_HIGH = false;
-    } else if (abs(temperatureSensor.value() - temperatureSetPoint.value()) < securityModeTemperatureDiffParam.value() - 2) {
+    } else if (abs(temperatureSensor.value() - temperatureSetPoint.value()) < securityModeTemperatureDiffParam.value() - 1) {
       alarmFlags.SECURITY_MODE_LOW = false;
       alarmFlags.SECURITY_MODE_HIGH = false;
     }
@@ -118,23 +119,19 @@ void xTaskControl(void *parameter) {
       shouldAlarm = true;
 
     if (alarmEnabled.value()) {
-      resetAlarmTimer.stop();
-
-      if (shouldAlarm && toggleAlarmTimer.complete()) {
-        digitalWrite(alarmOutput, !digitalRead(alarmOutput));
-      }
-
-    } else {
-      if (toggleAlarmTimer.complete())
-        digitalWrite(alarmOutput, LOW);
-
-      if (resetAlarmTimer.complete()) {
-        alarmEnabled.setValueSync(true);
-      }
+      reactiveAlarmTimer.stop();
+    } else if (reactiveAlarmTimer.complete()) {
+      alarmEnabled.setValueSync(true);
     }
 
+    if (toggleAlarmTimer.complete())
+      digitalWrite(alarmOutput, shouldAlarm && alarmEnabled.value() ? !digitalRead(alarmOutput) : LOW);
+
+#pragma endregion
+
     vTaskDelay(pdMS_TO_TICKS(20));
-    /// DEBUG
+
+    /////////////////////////////////////////// DEBUG //////////////////////////////////////////////////////
 
     if (debug.complete()) {
       String alarms = "";

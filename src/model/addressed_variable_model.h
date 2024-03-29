@@ -29,7 +29,7 @@ class AddressedVariable {
     bool shouldUpdate = currentTime - _lastUpdatedDisplay >= _interval;
     if (shouldUpdate) {
       _lastUpdatedDisplay = currentTime;
-      _interval = pdMS_TO_TICKS(random(1500, 3500));
+      _interval = pdMS_TO_TICKS(random(1000, 5000));
     }
     return shouldUpdate;
   }

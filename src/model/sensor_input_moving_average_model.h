@@ -66,7 +66,7 @@ class SensorInputAverageModel : public AddressedVariable {
     return (_sum / _samples);
   }
 
-  bool isComplete() {
+  bool complete() {
     return _completed;
   }
 };

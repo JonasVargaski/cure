@@ -42,7 +42,7 @@ void xTaskSensors(void *parameter) {
     //   Serial.print("°C | ");
     //   Serial.print(humiditySensor.value(), 2);
     //   Serial.print("°F | ");
-    //   Serial.println(temperatureSensor.isComplete() ? "done" : "reading");
+    //   Serial.println(temperatureSensor.complete() ? "done" : "reading");
     // }
     vTaskDelay(pdMS_TO_TICKS(200));
   }
