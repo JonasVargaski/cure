@@ -13,6 +13,7 @@
 #include "model/cyclic_timer_model.h"
 
 #define MIN_ACCELERATION_RAMP_IN_MS 700
+#define SECURITY_MODE_RESET_DIFF 3
 
 // pin map output
 #define alarmOutput 32
@@ -52,6 +53,7 @@ void xTaskControl(void *parameter) {
   CyclicTimerModel injectionMachineOnOffTimer;
 
   AccelerationRampPwmModel humidityDamperOutputRamp(humidityDamperPwmOutput, 0, 1500);
+  bool securityModeActivated = false;
 
   while (!temperatureSensor.complete() || !humiditySensor.complete()) {
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -68,12 +70,24 @@ void xTaskControl(void *parameter) {
 #pragma region HUMIDITY_DAMPER
     int damperDirState = eHumidityDamperStatus::DAMPER_OFF;
 
-    if (humiditySensor.value() - humiditySetPoint.value() >= humidityDamperDiffParam.value()) {
-      humidityDamperOnOffTimer.setDuration(humidityDamperEnableTimeParam.value(), humidityDamperDisableTimeParam.value() * 1000, false);
-      damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_OPEN : eHumidityDamperStatus::DAMPER_OFF;
-    } else {
-      humidityDamperOnOffTimer.setDuration(35000, 60000);  // 35s ON, 60s OFF
-      damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_CLOSE : eHumidityDamperStatus::DAMPER_OFF;
+    if (!securityModeActivated) {
+      if (humiditySensor.value() - humiditySetPoint.value() >= humidityDamperDiffParam.value()) {
+        humidityDamperOnOffTimer.setDuration(humidityDamperEnableTimeParam.value(), humidityDamperDisableTimeParam.value() * 1000, false);
+        damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_OPEN : eHumidityDamperStatus::DAMPER_OFF;
+      } else {
+        humidityDamperOnOffTimer.setDuration(35000, 60000);  // 35s ON, 60s OFF
+        damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_CLOSE : eHumidityDamperStatus::DAMPER_OFF;
+      }
+    }
+
+    if (temperatureSensor.value() - temperatureSetPoint.value() >= securityModeTemperatureDiffParam.value()) {
+      damperDirState = eHumidityDamperStatus::DAMPER_OPEN;
+      securityModeActivated = true;
+    } else if (temperatureSetPoint.value() - temperatureSensor.value() >= securityModeTemperatureDiffParam.value()) {
+      damperDirState = eHumidityDamperStatus::DAMPER_CLOSE;
+      securityModeActivated = true;
+    } else if (abs(temperatureSensor.value() - temperatureSetPoint.value()) <= SECURITY_MODE_RESET_DIFF) {
+      securityModeActivated = false;
     }
 
     if (humiditySensor.isOutOfRange()) {
@@ -159,7 +173,7 @@ void xTaskControl(void *parameter) {
     } else if (temperatureSetPoint.value() - temperatureSensor.value() >= securityModeTemperatureDiffParam.value()) {
       alarmFlags.SECURITY_MODE_LOW = true;
       alarmFlags.SECURITY_MODE_HIGH = false;
-    } else if (abs(temperatureSensor.value() - temperatureSetPoint.value()) < securityModeTemperatureDiffParam.value() - 1) {
+    } else if (abs(temperatureSensor.value() - temperatureSetPoint.value()) <= SECURITY_MODE_RESET_DIFF) {
       alarmFlags.SECURITY_MODE_LOW = false;
       alarmFlags.SECURITY_MODE_HIGH = false;
     }
@@ -244,14 +258,14 @@ void xTaskControl(void *parameter) {
       if (digitalRead(alarmOutput)) Serial.print(" | alarmOutput");
       Serial.println();
 
-      Serial.printf("[ALARM] enabled: %d, shouldActivateAlarm: %d - ", alarmEnabled.value(), shouldActivateAlarm);
+      Serial.printf("[ALARM] enabled: %d, alarmState: %s - ", alarmEnabled.value(), shouldActivateAlarm ? "ON" : "OFF");
       Serial.println(alarms);
-      Serial.printf("[HUMIDITY] damperAction: %s\n", damperDirState == eHumidityDamperStatus::DAMPER_OFF ? "OFF" : damperDirState == eHumidityDamperStatus::DAMPER_OPEN ? "OPEN"
-                                                                                                                                                                        : "CLOSE");
-      Serial.printf("[FAN] enabled: %d, shouldActivateFan: %d \n", temperatureFanEnabled.value(), shouldActivateFan);
-      Serial.printf("[INJECTION] enabled: %d, shouldActiveInjectionMachine: %d , state: %d\n", injectionMachineEnabled.value(), shouldActiveInjectionMachine, injectionMachineState == eInjectionMachineStatus::MACHINE_CLEAR ? "CLEAR" : injectionMachineState == eInjectionMachineStatus::MACHINE_ON ? "ON"
-                                                                                                                                                                                                                                                                                                       : "OFF");
-      Serial.printf("[FLAG] ventilationFail: %d, electricalFail: %d , \n", hasVentilationFail, hasElectricalFail);
+      Serial.printf("[HUMIDITY] pwm: %d, damperState: %s\n", ledcRead(0), damperDirState == eHumidityDamperStatus::DAMPER_OFF ? "OFF" : damperDirState == eHumidityDamperStatus::DAMPER_OPEN ? "OPEN"
+                                                                                                                                                                                             : "CLOSE");
+      Serial.printf("[FAN] enabled: %d, fanState: %s \n", temperatureFanEnabled.value(), shouldActivateFan ? "ON" : "OFF");
+      Serial.printf("[INJECTION] enabled: %d, injectionState: %s\n", injectionMachineEnabled.value(), injectionMachineState == eInjectionMachineStatus::MACHINE_CLEAR ? "CLEAR" : injectionMachineState == eInjectionMachineStatus::MACHINE_ON ? "ON"
+                                                                                                                                                                                                                                               : "OFF");
+      Serial.printf("[FLAG] ventilationFail: %d, electricalFail: %d, securityModeState: %s \n", hasVentilationFail, hasElectricalFail, securityModeActivated ? "ON" : "OFF");
 
       Serial.println(F("---------------------------------------------------------"));
     }
