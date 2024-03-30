@@ -17,8 +17,9 @@ class CyclicTimerModel {
     _enabled = false;
   }
 
-  void reset() {
+  void reset(bool startEnabled = true) {
     _startTime = (esp_timer_get_time() / 1000);
+    _enabled = startEnabled;
   }
 
   void setDuration(uint32_t durationOnInMs, uint32_t durationOffInMs, bool startEnabled = true) {

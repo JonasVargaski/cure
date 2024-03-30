@@ -7,7 +7,6 @@
 #include <freertos/task.h>
 
 #include "global.h"
-// #include "model/timeout_model.h"
 
 void xTaskSensors(void *parameter) {
   Adafruit_ADS1115 ads(0x48);

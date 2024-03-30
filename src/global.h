@@ -60,6 +60,7 @@ Uint16StorageModel alarmSecurityTypeParam(0x1216, &variableMutex, 0, 3);        
 BoolStorageModel alarmVentilationTypeParam(0x1217, &variableMutex);                      // define se gera alarme de ventilação [eYesOrNo] (0=NÃO, 1=SIM)
 BoolStorageModel alarmElectricalSupplyTypeParam(0x1218, &variableMutex);                 // define se gera alarme de falta de energia [eYesOrNo] (0=NÃO, 1=SIM)
 Uint16StorageModel remotePasswordParam(0x1219, &variableMutex, 1000, 9999);              // define a senha de acesso remoto ao controlador (utilizada para acessar app)
+Uint16StorageModel temperatureFanReactiveParam(0x1220, &variableMutex, 0, 600);          // [MINUTES] contagem de tempo quando ventoinha está desligada para religar automaticamente (0=DESATIVADO)
 
 // VP 1300~1399
 BoolStorageModel alarmEnabled(0x1300, &variableMutex);             // controlar se alarme pode ligar [eYesOrNo] (0=NÃO, 1=SIM)
@@ -104,6 +105,7 @@ std::vector<Uint16StorageModel*> numberDisplayVariables = {
     &injectionMachineIntervalParam,
     &humidityDamperOutputState,
     &injectionMachineOutputState,
+    &temperatureFanReactiveParam,
 };
 
 std::vector<BoolStorageModel*> booleanDisplayVariables = {
