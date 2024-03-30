@@ -76,6 +76,10 @@ void xTaskControl(void *parameter) {
       damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_CLOSE : eHumidityDamperStatus::DAMPER_OFF;
     }
 
+    if (humiditySensor.isOutOfRange()) {
+      damperDirState = eHumidityDamperStatus::DAMPER_OFF;
+    }
+
     if ((hasVentilationFail || hasElectricalFail) && failFlagsBlockParam.value()) {
       damperDirState = eHumidityDamperStatus::DAMPER_OPEN;
     }
@@ -107,7 +111,7 @@ void xTaskControl(void *parameter) {
       intervalFanStateTimer.reset();
     }
 
-    if ((hasVentilationFail || hasElectricalFail) && failFlagsBlockParam.value()) {
+    if (((hasVentilationFail || hasElectricalFail) && failFlagsBlockParam.value()) || temperatureSensor.isOutOfRange()) {
       shouldActivateFan = false;
     }
 
