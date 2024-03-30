@@ -13,6 +13,8 @@ class SensorInputAverageModel : public AddressedVariable {
   int _index;
   float _sum;
   bool _completed = false;
+  int32_t _maxRangeValue;
+  int32_t _minRangeValue;
 
   std::function<float(uint16_t)> _conversionCallback;
 
@@ -29,6 +31,8 @@ class SensorInputAverageModel : public AddressedVariable {
   SensorInputAverageModel(u_int16_t address, SemaphoreHandle_t *mutex, uint8_t samples) : AddressedVariable(address, mutex) {
     _samples = samples;
     _values = new float[_samples];
+    _minRangeValue = (INT32_MIN + 1);
+    _maxRangeValue = (INT32_MAX - 1);
     reset();
 
     _conversionCallback = [](uint16_t value) {
@@ -44,13 +48,17 @@ class SensorInputAverageModel : public AddressedVariable {
     _conversionCallback = conversionCallback;
   }
 
+  void setValidRange(int32_t min, int32_t max) {
+    _minRangeValue = min;
+    _maxRangeValue = max;
+  }
+
   void addValue(uint16_t newValue) {
     if (xSemaphoreTake(*_mutex, portMAX_DELAY) == pdTRUE) {
       float parsedValue = _conversionCallback(newValue);
-      float nextValue = constrain(parsedValue, 0, UINT16_MAX);
 
-      _sum = _sum - _values[_index] + nextValue;
-      _values[_index] = nextValue;
+      _sum = _sum - _values[_index] + parsedValue;
+      _values[_index] = parsedValue;
 
       if (!_completed && _index + 1 >= _samples) {
         _completed = true;
@@ -68,6 +76,11 @@ class SensorInputAverageModel : public AddressedVariable {
 
   bool complete() {
     return _completed;
+  }
+
+  bool isOutOfRange() {
+    float currentValue = (_sum / _samples);
+    return currentValue <= _minRangeValue || currentValue >= _maxRangeValue;
   }
 };
 

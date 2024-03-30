@@ -146,8 +146,8 @@ void xTaskControl(void *parameter) {
 #pragma region ALARMS
     alarmFlags.VENTILATION_FAILURE = hasVentilationFail;
     alarmFlags.ELECTRICAL_SUPPLY = hasElectricalFail;
-    alarmFlags.TEMPERATURE_SENSOR_FAILURE = temperatureSensor.value() < 1;
-    alarmFlags.HUMIDITY_SENSOR_FAILURE = humiditySensor.value() < 1;
+    alarmFlags.TEMPERATURE_SENSOR_FAILURE = temperatureSensor.isOutOfRange();
+    alarmFlags.HUMIDITY_SENSOR_FAILURE = humiditySensor.isOutOfRange();
 
     if (temperatureSensor.value() - temperatureSetPoint.value() >= securityModeTemperatureDiffParam.value()) {
       alarmFlags.SECURITY_MODE_LOW = false;
