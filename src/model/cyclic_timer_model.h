@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-class OnOffTimerModel {
+class CyclicTimerModel {
   private:
   u_int32_t _startTime;
   u_int32_t _on_duration;
@@ -11,7 +11,7 @@ class OnOffTimerModel {
   bool _enabled;
 
   public:
-  OnOffTimerModel() {
+  CyclicTimerModel() {
     _on_duration = 0;
     _off_duration = 0;
     _enabled = false;

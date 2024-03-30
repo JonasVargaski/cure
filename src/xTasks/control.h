@@ -9,7 +9,7 @@
 #include "enums.h"
 #include "global.h"
 #include "model/acceleration_ramp_pwm_model.h"
-#include "model/on_off_timer_model.h"
+#include "model/cyclic_timer_model.h"
 #include "model/timeout_model.h"
 
 #define ACCELERATION_RAMP_IN_MS 600
@@ -40,7 +40,7 @@ void xTaskControl(void *parameter) {
   TimeoutModel intervalFanTimer;
   TimeoutModel debug(1000);
 
-  OnOffTimerModel humidityDamperTimer;
+  CyclicTimerModel humidityDamperTimer;
   AccelerationRampPwmModel humidityDamperOutputRamp(15, 0, 1500);
 
   while (!temperatureSensor.complete() || !humiditySensor.complete()) {
