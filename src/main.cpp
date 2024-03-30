@@ -10,7 +10,7 @@
 void setup() {
   Serial.begin(115200);
 
-  resetOutputs();
+  resetIOs();
 
   Preferences preferences;
   preferences.begin("VP", true);

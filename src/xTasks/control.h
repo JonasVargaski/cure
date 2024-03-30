@@ -25,13 +25,17 @@
 #define humidityDamperPwm 15
 #define injectionMachineA 12
 #define injectionMachineB 33
+#define electricalInputFlag 34
+#define ventilationInputFlag 35
 
-void resetOutputs() {
+void resetIOs() {
   int pins[9] = {alarmOutput, temperatureFanOutput, temperatureDamperAOutput, temperatureDamperBOutput, humidityDamperA, humidityDamperB, injectionMachineA, injectionMachineB, humidityDamperPwm};
   for (int i = 0; i < 8; i++) {
     pinMode(pins[i], OUTPUT);
     digitalWrite(pins[i], LOW);
   }
+  pinMode(electricalInputFlag, INPUT_PULLUP);
+  pinMode(ventilationInputFlag, INPUT_PULLUP);
 }
 
 void xTaskControl(void *parameter) {
@@ -56,6 +60,11 @@ void xTaskControl(void *parameter) {
   while (1) {
     vTaskDelay(pdMS_TO_TICKS(15));
 
+#pragma region INPUT_FLAGS
+    bool hasVentilationFail = !digitalRead(ventilationInputFlag);
+    bool hasElectricalFail = !digitalRead(electricalInputFlag);
+#pragma endregion
+
 #pragma region HUMIDITY_DAMPER
     int damperDirState = eHumidityDamperStatus::DAMPER_OFF;
 
@@ -65,6 +74,10 @@ void xTaskControl(void *parameter) {
     } else {
       humidityDamperOnOffTimer.setDuration(35000, 60000);  // 35s ON, 60s OFF
       damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_CLOSE : eHumidityDamperStatus::DAMPER_OFF;
+    }
+
+    if ((hasVentilationFail || hasElectricalFail) && failFlagsBlockParam.value()) {
+      damperDirState = eHumidityDamperStatus::DAMPER_OPEN;
     }
 
     digitalWrite(humidityDamperA, damperDirState == eHumidityDamperStatus::DAMPER_OFF ? LOW : damperDirState != eHumidityDamperStatus::DAMPER_OPEN);
@@ -92,6 +105,10 @@ void xTaskControl(void *parameter) {
       shouldActivateFan = intervalFanStateTimer.waitFor(temperatureFanIntervalParam.value() * 1000);
     } else if (digitalRead(temperatureFanOutput)) {
       intervalFanStateTimer.reset();
+    }
+
+    if ((hasVentilationFail || hasElectricalFail) && failFlagsBlockParam.value()) {
+      shouldActivateFan = false;
     }
 
     digitalWrite(temperatureFanOutput, shouldActivateFan);
@@ -127,9 +144,8 @@ void xTaskControl(void *parameter) {
 #pragma endregion
 
 #pragma region ALARMS
-    alarmFlags.VENTILATION_FAILURE = true;  // TODO: read input
-    alarmFlags.ELECTRICAL_SUPPLY = true;    // TODO: read input
-
+    alarmFlags.VENTILATION_FAILURE = hasVentilationFail;
+    alarmFlags.ELECTRICAL_SUPPLY = hasElectricalFail;
     alarmFlags.TEMPERATURE_SENSOR_FAILURE = temperatureSensor.value() < 1;
     alarmFlags.HUMIDITY_SENSOR_FAILURE = humiditySensor.value() < 1;
 
@@ -229,7 +245,9 @@ void xTaskControl(void *parameter) {
       Serial.printf("[HUMIDITY] damperAction: %s\n", damperDirState == eHumidityDamperStatus::DAMPER_OFF ? "OFF" : damperDirState == eHumidityDamperStatus::DAMPER_OPEN ? "OPEN"
                                                                                                                                                                         : "CLOSE");
       Serial.printf("[FAN] enabled: %d, shouldActivateFan: %d \n", temperatureFanEnabled.value(), shouldActivateFan);
-      Serial.printf("[INJECTION] enabled: %d, shouldActiveInjectionMachine: %d , state: %d\n", injectionMachineEnabled.value(), shouldActiveInjectionMachine, injectionMachineState);
+      Serial.printf("[INJECTION] enabled: %d, shouldActiveInjectionMachine: %d , state: %d\n", injectionMachineEnabled.value(), shouldActiveInjectionMachine, injectionMachineState == eInjectionMachineStatus::MACHINE_CLEAR ? "CLEAR" : injectionMachineState == eInjectionMachineStatus::MACHINE_ON ? "ON"
+                                                                                                                                                                                                                                                                                                       : "OFF");
+      Serial.printf("[FLAG] ventilationFail: %d, electricalFail: %d , \n", hasVentilationFail, hasElectricalFail);
 
       Serial.println(F("---------------------------------------------------------"));
     }
