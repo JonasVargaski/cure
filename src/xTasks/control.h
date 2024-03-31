@@ -15,28 +15,43 @@
 #define MIN_ACCELERATION_RAMP_IN_MS 700
 #define SECURITY_MODE_RESET_DIFF 3
 
-// pin map output
-#define alarmOutput 32
-#define temperatureFanOutput 13
-#define temperatureDamperAOutput 14
-#define temperatureDamperBOutput 26
-#define humidityDamperPwmOutput 15
-#define humidityDamperA 27
-#define humidityDamperB 25
-#define humidityDamperPwm 15
-#define injectionMachineA 12
-#define injectionMachineB 33
-#define electricalInputFlag 34
-#define ventilationInputFlag 35
+enum ePinMap {
+  OUT_ALARM = 32,
+  OUT_FAN = 13,
+  OUT_TEMP_DAMPER_A = 14,
+  OUT_TEMP_DAMPER_B = 26,
+  OUT_DAMPER_A = 27,
+  OUT_DAMPER_B = 25,
+  OUT_DAMPER_PWM = 15,
+  OUT_INJECTION_A = 12,
+  OUT_INJECTION_B = 33,
+  IN_ELECTRICAL = 34,
+  IN_VENTILATION = 35,
+};
+
+// // pin map output
+// #define alarmOutput 32
+// #define temperatureFanOutput 13
+// #define temperatureDamperAOutput 14
+// #define temperatureDamperBOutput 26
+// #define humidityDamperPwmOutput 15
+// #define humidityDamperA 27
+// #define humidityDamperB 25
+// #define humidityDamperPwm 15
+// #define injectionMachineA 12
+// #define injectionMachineB 33
+// #define electricalInputFlag 34
+// #define ventilationInputFlag 35
 
 void resetIOs() {
-  int pins[9] = {alarmOutput, temperatureFanOutput, temperatureDamperAOutput, temperatureDamperBOutput, humidityDamperA, humidityDamperB, injectionMachineA, injectionMachineB, humidityDamperPwm};
+  pinMode(ePinMap::IN_ELECTRICAL, INPUT_PULLUP);
+  pinMode(ePinMap::IN_VENTILATION, INPUT_PULLUP);
+
+  int pins[9] = {ePinMap::OUT_ALARM, ePinMap::OUT_DAMPER_A, ePinMap::OUT_DAMPER_B, ePinMap::OUT_DAMPER_PWM, ePinMap::OUT_FAN, ePinMap::OUT_INJECTION_A, ePinMap::OUT_INJECTION_B, ePinMap::OUT_TEMP_DAMPER_A, ePinMap::OUT_TEMP_DAMPER_B};
   for (int i = 0; i < 8; i++) {
     pinMode(pins[i], OUTPUT);
     digitalWrite(pins[i], LOW);
   }
-  pinMode(electricalInputFlag, INPUT_PULLUP);
-  pinMode(ventilationInputFlag, INPUT_PULLUP);
 }
 
 void xTaskControl(void *parameter) {
@@ -52,7 +67,7 @@ void xTaskControl(void *parameter) {
   CyclicTimerModel humidityDamperOnOffTimer;
   CyclicTimerModel injectionMachineOnOffTimer;
 
-  AccelerationRampPwmModel humidityDamperOutputRamp(humidityDamperPwmOutput, 0, 1500);
+  AccelerationRampPwmModel humidityDamperOutputRamp(ePinMap::OUT_DAMPER_PWM, 0, 1500);
   bool securityModeActivated = false;
 
   while (!temperatureSensor.complete() || !humiditySensor.complete()) {
@@ -63,8 +78,8 @@ void xTaskControl(void *parameter) {
     vTaskDelay(pdMS_TO_TICKS(15));
 
 #pragma region INPUT_FLAGS
-    bool hasVentilationFail = !digitalRead(ventilationInputFlag);
-    bool hasElectricalFail = !digitalRead(electricalInputFlag);
+    bool hasVentilationFail = !digitalRead(ePinMap::IN_VENTILATION);
+    bool hasElectricalFail = !digitalRead(ePinMap::IN_ELECTRICAL);
 #pragma endregion
 
 #pragma region HUMIDITY_DAMPER
@@ -98,8 +113,8 @@ void xTaskControl(void *parameter) {
       damperDirState = eHumidityDamperStatus::DAMPER_OPEN;
     }
 
-    digitalWrite(humidityDamperA, damperDirState == eHumidityDamperStatus::DAMPER_OFF ? LOW : damperDirState != eHumidityDamperStatus::DAMPER_OPEN);
-    digitalWrite(humidityDamperB, damperDirState == eHumidityDamperStatus::DAMPER_OFF ? LOW : damperDirState == eHumidityDamperStatus::DAMPER_OPEN);
+    digitalWrite(ePinMap::OUT_DAMPER_A, damperDirState == eHumidityDamperStatus::DAMPER_OFF ? LOW : damperDirState != eHumidityDamperStatus::DAMPER_OPEN);
+    digitalWrite(ePinMap::OUT_DAMPER_B, damperDirState == eHumidityDamperStatus::DAMPER_OFF ? LOW : damperDirState == eHumidityDamperStatus::DAMPER_OPEN);
     humidityDamperOutputState.setValueSync(damperDirState, false);
 
     if (damperDirState != eHumidityDamperStatus::DAMPER_OFF) {
@@ -121,7 +136,7 @@ void xTaskControl(void *parameter) {
 
     if (temperatureFanEnabled.value() && (temperatureSetPoint.value() - temperatureSensor.value()) >= temperatureFanDiffParam.value()) {
       shouldActivateFan = intervalFanStateTimer.waitFor(temperatureFanIntervalParam.value() * 1000);
-    } else if (digitalRead(temperatureFanOutput)) {
+    } else if (digitalRead(ePinMap::OUT_FAN)) {
       intervalFanStateTimer.reset();
     }
 
@@ -129,7 +144,7 @@ void xTaskControl(void *parameter) {
       shouldActivateFan = false;
     }
 
-    digitalWrite(temperatureFanOutput, shouldActivateFan);
+    digitalWrite(ePinMap::OUT_FAN, shouldActivateFan);
     temperatureFanOutputState.setValueSync(shouldActivateFan, false);
 #pragma endregion
 
@@ -140,7 +155,7 @@ void xTaskControl(void *parameter) {
 
     if (shouldActivateFan && injectionMachineEnabled.value() && (temperatureSetPoint.value() - temperatureSensor.value()) >= injectionMachineDiffParam.value()) {
       shouldActiveInjectionMachine = intervalInjectMachineStateTimer.waitFor(injectionMachineIntervalParam.value() * 1000);
-    } else if (digitalRead(injectionMachineA)) {
+    } else if (digitalRead(ePinMap::OUT_INJECTION_A)) {
       intervalInjectMachineStateTimer.reset();
     }
 
@@ -156,8 +171,8 @@ void xTaskControl(void *parameter) {
       injectionMachineState = eInjectionMachineStatus::MACHINE_CLEAR;
     }
 
-    digitalWrite(injectionMachineA, injectionMachineState != eInjectionMachineStatus::MACHINE_OFF);
-    digitalWrite(injectionMachineB, injectionMachineState == eInjectionMachineStatus::MACHINE_ON);
+    digitalWrite(ePinMap::OUT_INJECTION_A, injectionMachineState != eInjectionMachineStatus::MACHINE_OFF);
+    digitalWrite(ePinMap::OUT_INJECTION_B, injectionMachineState == eInjectionMachineStatus::MACHINE_ON);
     injectionMachineOutputState.setValueSync(injectionMachineState, false);
 #pragma endregion
 
@@ -228,8 +243,8 @@ void xTaskControl(void *parameter) {
 
     if (toggleAlarmTimer.waitFor(900)) {
       toggleAlarmTimer.reset();
-      digitalWrite(alarmOutput, shouldActivateAlarm && alarmEnabled.value() ? !digitalRead(alarmOutput) : LOW);
-      alarmOutputState.setValueSync(digitalRead(alarmOutput), false);
+      digitalWrite(ePinMap::OUT_ALARM, shouldActivateAlarm && alarmEnabled.value() ? !digitalRead(ePinMap::OUT_ALARM) : LOW);
+      alarmOutputState.setValueSync(digitalRead(ePinMap::OUT_ALARM), false);
     }
 
 #pragma endregion
@@ -250,12 +265,12 @@ void xTaskControl(void *parameter) {
       if (alarmFlags.HUMIDITY_LOW) alarms.concat("HUMIDITY_LOW ");
 
       Serial.printf("[OUTPUTS] ");
-      if (digitalRead(temperatureFanOutput)) Serial.print("temperatureFanOutput");
-      if (digitalRead(injectionMachineA)) Serial.print(" | injectionMachineA");
-      if (digitalRead(injectionMachineB)) Serial.print(" | injectionMachineB");
-      if (digitalRead(humidityDamperA)) Serial.print(" | humidityDamperA");
-      if (digitalRead(humidityDamperB)) Serial.print(" | humidityDamperB");
-      if (digitalRead(alarmOutput)) Serial.print(" | alarmOutput");
+      if (digitalRead(ePinMap::OUT_FAN)) Serial.print("OUT_FAN");
+      if (digitalRead(ePinMap::OUT_INJECTION_A)) Serial.print(" | OUT_INJECTION_A");
+      if (digitalRead(ePinMap::OUT_INJECTION_B)) Serial.print(" | OUT_INJECTION_B");
+      if (digitalRead(ePinMap::OUT_DAMPER_A)) Serial.print(" | OUT_DAMPER_A");
+      if (digitalRead(ePinMap::OUT_DAMPER_B)) Serial.print(" | OUT_DAMPER_B");
+      if (digitalRead(ePinMap::OUT_ALARM)) Serial.print(" | OUT_ALARM");
       Serial.println();
 
       Serial.printf("[ALARM] enabled: %d, alarmState: %s - ", alarmEnabled.value(), shouldActivateAlarm ? "ON" : "OFF");
