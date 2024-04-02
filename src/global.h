@@ -44,7 +44,7 @@ Uint16StorageModel temperatureFanDiffParam(0x1200, &variableMutex, 1, 20);      
 Uint16StorageModel injectionMachineDiffParam(0x1201, &variableMutex, 1, 20);             // diferença entre ajuste/sensor de temperatura para acionador da máquina injetora (depende da venoinha estar acionada)
 Uint16StorageModel humidityDamperDiffParam(0x1202, &variableMutex, 1, 20);               // diferença entre ajuste/sensor de humidade para acionador do flap de umidade
 Uint16StorageModel securityModeTemperatureDiffParam(0x1203, &variableMutex, 5, 100);     // diferença entre ajuste/sensor de temperatura para entrar no modo de segurança (setar valor alto para desativar)
-Uint16StorageModel humidityDamperEnableTimeParam(0x1204, &variableMutex, 20, 65535);     // [MILLIS] define tempo que o flap permanece ligado para controle em estágios
+Uint16StorageModel humidityDamperEnableTimeParam(0x1204, &variableMutex, 80, 65535);     // [MILLIS] define tempo que o flap permanece ligado para controle em estágios
 Uint16StorageModel humidityDamperDisableTimeParam(0x1205, &variableMutex, 0, 3600);      // [SECONDS] define tempo que o flap permanece desligado para controle em estágios
 Uint16StorageModel temperatureFanIntervalParam(0x1206, &variableMutex, 0, 3600);         // [SECONDS] tempo de intervalo entre acionamentos da ventoinha, conta a cada inversão de estado (evita falsos acionamentos por instabilidade de temperatura)
 Uint16StorageModel injectionMachineIntervalParam(0x1207, &variableMutex, 0, 7200);       // [SECONDS] tempo de intervalo entre acionamentos da injetora, conta a cada inversão de estado (evita encher a fornalha)

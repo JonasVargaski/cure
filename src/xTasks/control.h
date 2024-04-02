@@ -12,42 +12,28 @@
 #include "model/async_timer_model.h"
 #include "model/cyclic_timer_model.h"
 
-#define MIN_ACCELERATION_RAMP_IN_MS 700
+#define MAX_ACCELERATION_RAMP_TIME_MS 1200
 #define SECURITY_MODE_RESET_DIFF 3
 
 enum ePinMap {
-  OUT_ALARM = 32,
-  OUT_FAN = 13,
-  OUT_TEMP_DAMPER_A = 14,
-  OUT_TEMP_DAMPER_B = 26,
-  OUT_DAMPER_A = 27,
-  OUT_DAMPER_B = 25,
-  OUT_DAMPER_PWM = 15,
-  OUT_INJECTION_A = 12,
-  OUT_INJECTION_B = 33,
   IN_ELECTRICAL = 34,
   IN_VENTILATION = 35,
+  OUT_ALARM = 13,
+  OUT_FAN = 32,
+  OUT_TEMP_DAMPER_A = 12,  // TODO: check if implement
+  OUT_TEMP_DAMPER_B = 26,  // TODO: check if implement
+  OUT_DAMPER_A = 27,
+  OUT_DAMPER_B = 14,
+  OUT_DAMPER_PWM = 2,  // 15
+  OUT_INJECTION_A = 33,
+  OUT_INJECTION_B = 25,
 };
-
-// // pin map output
-// #define alarmOutput 32
-// #define temperatureFanOutput 13
-// #define temperatureDamperAOutput 14
-// #define temperatureDamperBOutput 26
-// #define humidityDamperPwmOutput 15
-// #define humidityDamperA 27
-// #define humidityDamperB 25
-// #define humidityDamperPwm 15
-// #define injectionMachineA 12
-// #define injectionMachineB 33
-// #define electricalInputFlag 34
-// #define ventilationInputFlag 35
 
 void resetIOs() {
   pinMode(ePinMap::IN_ELECTRICAL, INPUT_PULLUP);
   pinMode(ePinMap::IN_VENTILATION, INPUT_PULLUP);
 
-  int pins[9] = {ePinMap::OUT_ALARM, ePinMap::OUT_DAMPER_A, ePinMap::OUT_DAMPER_B, ePinMap::OUT_DAMPER_PWM, ePinMap::OUT_FAN, ePinMap::OUT_INJECTION_A, ePinMap::OUT_INJECTION_B, ePinMap::OUT_TEMP_DAMPER_A, ePinMap::OUT_TEMP_DAMPER_B};
+  int pins[8] = {ePinMap::OUT_ALARM, ePinMap::OUT_DAMPER_A, ePinMap::OUT_DAMPER_B, ePinMap::OUT_FAN, ePinMap::OUT_INJECTION_A, ePinMap::OUT_INJECTION_B, ePinMap::OUT_TEMP_DAMPER_A, ePinMap::OUT_TEMP_DAMPER_B};
   for (int i = 0; i < 8; i++) {
     pinMode(pins[i], OUTPUT);
     digitalWrite(pins[i], LOW);
@@ -62,12 +48,15 @@ void xTaskControl(void *parameter) {
   AsyncTimerModel reactiveFanTimer;
   AsyncTimerModel intervalFanStateTimer;
   AsyncTimerModel intervalInjectMachineStateTimer;
-  AsyncTimerModel injectionMachineClearTimer;
+  AsyncTimerModel injectionMachineClearTimer(true);
+  AsyncTimerModel checkVentilationTimer;
+  AsyncTimerModel checkElectricalTimer;
 
   CyclicTimerModel humidityDamperOnOffTimer;
   CyclicTimerModel injectionMachineOnOffTimer;
 
   AccelerationRampPwmModel humidityDamperOutputRamp(ePinMap::OUT_DAMPER_PWM, 0, 1500);
+
   bool securityModeActivated = false;
 
   while (!temperatureSensor.complete() || !humiditySensor.complete()) {
@@ -78,8 +67,8 @@ void xTaskControl(void *parameter) {
     vTaskDelay(pdMS_TO_TICKS(15));
 
 #pragma region INPUT_FLAGS
-    bool hasVentilationFail = !digitalRead(ePinMap::IN_VENTILATION);
-    bool hasElectricalFail = !digitalRead(ePinMap::IN_ELECTRICAL);
+    bool hasVentilationFail = !digitalRead(ePinMap::IN_VENTILATION) ? checkVentilationTimer.waitFor(3000) : checkVentilationTimer.reset();
+    bool hasElectricalFail = !digitalRead(ePinMap::IN_ELECTRICAL) ? checkElectricalTimer.waitFor(3000) : checkElectricalTimer.reset();
 #pragma endregion
 
 #pragma region HUMIDITY_DAMPER
@@ -119,7 +108,7 @@ void xTaskControl(void *parameter) {
 
     if (damperDirState != eHumidityDamperStatus::DAMPER_OFF) {
       int timeEnabled = humidityDamperEnableTimeParam.value();
-      humidityDamperOutputRamp.start(constrain(timeEnabled, timeEnabled, MIN_ACCELERATION_RAMP_IN_MS));
+      humidityDamperOutputRamp.start(constrain(timeEnabled, timeEnabled, MAX_ACCELERATION_RAMP_TIME_MS));
     } else
       humidityDamperOutputRamp.stop();
 
@@ -275,12 +264,12 @@ void xTaskControl(void *parameter) {
 
       Serial.printf("[ALARM] enabled: %d, alarmState: %s - ", alarmEnabled.value(), shouldActivateAlarm ? "ON" : "OFF");
       Serial.println(alarms);
-      Serial.printf("[HUMIDITY] pwm: %d, damperState: %s\n", ledcRead(0), damperDirState == eHumidityDamperStatus::DAMPER_OFF ? "OFF" : damperDirState == eHumidityDamperStatus::DAMPER_OPEN ? "OPEN"
-                                                                                                                                                                                             : "CLOSE");
+      Serial.printf("[HUMIDITY] securityModeActivated: %s, pwm: %d, damperState: %s\n", securityModeActivated ? "ON" : "OFF", ledcRead(0), damperDirState == eHumidityDamperStatus::DAMPER_OFF ? "OFF" : damperDirState == eHumidityDamperStatus::DAMPER_OPEN ? "OPEN"
+                                                                                                                                                                                                                                                              : "CLOSE");
       Serial.printf("[FAN] enabled: %d, fanState: %s \n", temperatureFanEnabled.value(), shouldActivateFan ? "ON" : "OFF");
       Serial.printf("[INJECTION] enabled: %d, injectionState: %s\n", injectionMachineEnabled.value(), injectionMachineState == eInjectionMachineStatus::MACHINE_CLEAR ? "CLEAR" : injectionMachineState == eInjectionMachineStatus::MACHINE_ON ? "ON"
                                                                                                                                                                                                                                                : "OFF");
-      Serial.printf("[FLAG] ventilationFail: %d, electricalFail: %d, securityModeState: %s \n", hasVentilationFail, hasElectricalFail, securityModeActivated ? "ON" : "OFF");
+      Serial.printf("[FLAG] ventilationFail: %d, electricalFail: %d \n", hasVentilationFail, hasElectricalFail);
 
       Serial.println(F("---------------------------------------------------------"));
     }

@@ -19,12 +19,13 @@ class AsyncTimerModel {
   bool _complete;
 
   public:
-  AsyncTimerModel() : _complete(false) {
+  AsyncTimerModel(bool startCompleted = false) : _complete(startCompleted) {
   }
 
-  void reset() {
+  bool reset() {
     _complete = false;
     _startTime = (esp_timer_get_time() / 1000);
+    return _complete;
   }
 
   bool waitFor(u_int32_t durationInMs = 0) {
