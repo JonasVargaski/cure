@@ -6,6 +6,7 @@
 #include "xTasks/control.h"
 #include "xTasks/display.h"
 #include "xTasks/sensors.h"
+#include "xTasks/wifi.h"
 
 void setup() {
   Serial.begin(115200);
@@ -32,6 +33,7 @@ void setup() {
   xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 1, NULL, 0);
   xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 4096, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(xTaskDisplay, "displayTask", 4096, NULL, 2, NULL, 1);
+  xTaskCreatePinnedToCore(xTaskWifi, "wifiTask", 4096, NULL, 3, NULL, 1);
 }
 
 void loop() {

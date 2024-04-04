@@ -71,11 +71,11 @@ BoolStorageModel injectionMachineEnabled(0x1302, &variableMutex);  // controlar 
 // VP 1400~1499
 TextStorageModel wifiSsidParam(0x1400, &variableMutex, 20);      // define o nome da rede wifi utilizada para conexão
 TextStorageModel wifiPasswordParam(0x1425, &variableMutex, 20);  // define a senha da rede wifi utilizada para conexão
-TextStorageModel macAddress(0x1450, &variableMutex, 8);          // endereço MAC do dispositivo, utilizado para conexão remota
+TextStorageModel wifiDeviceId(0x1450, &variableMutex, 8);        // endereço MAC do dispositivo, utilizado para conexão remota
 
 // VP 1500~1599
 Uint16StorageModel connectionStatus(0x1500, &variableMutex, 0, 3);             // estado da conexão wifi/servidor do dispositivo [eWifiStatus] (0=DESCONECTADO, 1=CONECTANDO, 2=SEM_INTERNET, 3=CONECTADO)
-Uint16StorageModel wifiSignalQuality(0x1501, &variableMutex, 0, 3);            // intensidade do sinal wifi do dispositivo (0=RUIM, 1=MEDIO, 2=BOM, 3=ÓTIMO)
+Uint16StorageModel wifiSignalQuality(0x1501, &variableMutex, 0, 4);            // intensidade do sinal wifi do dispositivo (0=DESCONHECIDO 1=RUIM, 2=MEDIO, 3=BOM, 4=ÓTIMO)
 BoolStorageModel alarmOutputState(0x1502, &variableMutex);                     // indicador do estado da saida do alarme [eOnOff] (0=DESLIGADO, 1=LIGADO)
 Uint16StorageModel humidityDamperOutputState(0x1503, &variableMutex, 0, 2);    // indicador do estado da saida do damper de alarme [eHumidityDamperStatus](0=DESLIGADO, 1=ABRINDO, 2=FECHANDO)
 BoolStorageModel temperatureFanOutputState(0x1504, &variableMutex);            // indicador do estado da saida da ventoinha [eOnOff] (0=DESLIGADO, 1=LIGADO)
@@ -123,7 +123,7 @@ std::vector<BoolStorageModel*> booleanDisplayVariables = {
 std::vector<TextStorageModel*> textDisplayVariables = {
     &wifiSsidParam,
     &wifiPasswordParam,
-    &macAddress,
+    &wifiDeviceId,
 };
 
 #endif
