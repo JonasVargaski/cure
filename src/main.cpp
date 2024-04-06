@@ -2,6 +2,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#include "defines/version.h"
 #include "global.h"
 #include "xTasks/control.h"
 #include "xTasks/display.h"
@@ -22,6 +23,8 @@ void setup() {
   for (TextStorageModel* obj : textDisplayVariables)
     obj->loadValue(&preferences);
   preferences.end();
+
+  firmwareVersion.setValue(FIRMWARE_VERSION);
 
   variableMutex = xSemaphoreCreateMutex();
   sensorMutex = xSemaphoreCreateMutex();

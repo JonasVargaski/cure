@@ -1,6 +1,7 @@
 #ifndef _TASK_WIFI_
 #define _TASK_WIFI_
 
+#include <ArduinoJson.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
 
@@ -12,7 +13,7 @@
 #define MQTT_BROKER "broker.mqtt-dashboard.com"
 #define MQTT_PORT 1883
 
-void onReceived(char *topic, byte *payload, unsigned int length) {
+void onReceived(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
@@ -22,11 +23,12 @@ void onReceived(char *topic, byte *payload, unsigned int length) {
   Serial.println();
 }
 
-void xTaskWifi(void *parameter) {
+void xTaskWifi(void* parameter) {
   WiFiClient wifi;
   PubSubClient mqtt(wifi);
 
   AsyncTimerModel sendParamsTimer;
+  JsonDocument doc;
 
   String deviceId = WiFi.macAddress();
   deviceId.replace(":", "");
@@ -38,6 +40,7 @@ void xTaskWifi(void *parameter) {
 
   mqtt.setServer(MQTT_BROKER, MQTT_PORT);
   mqtt.setCallback(onReceived);
+  mqtt.setBufferSize(512);
 
   while (1) {
     while (WiFi.status() != WL_CONNECTED) {
@@ -63,9 +66,43 @@ void xTaskWifi(void *parameter) {
       sendParamsTimer.reset();
       connectionStatus.setValueSync(eWifiStatus::CONNECTED, false);
       wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
+      doc.clear();
+
+      JsonArray data = doc["data"].to<JsonArray>();
+
+      for (Uint16StorageModel* obj : numberDisplayVariables) {
+        JsonArray partial = data.add<JsonArray>();
+        partial.add(obj->address());
+        partial.add(obj->value());
+      }
+      for (BoolStorageModel* obj : booleanDisplayVariables) {
+        JsonArray partial = data.add<JsonArray>();
+        partial.add(obj->address());
+        partial.add((int)obj->value());
+      }
+      for (TextStorageModel* obj : textDisplayVariables) {
+        JsonArray partial = data.add<JsonArray>();
+        partial.add(obj->address());
+        partial.add(obj->value());
+      }
+
+      JsonArray alarms = doc["alarm"].to<JsonArray>();
+      alarms.add((int)alarmFlags.ELECTRICAL_SUPPLY);
+      alarms.add((int)alarmFlags.VENTILATION_FAILURE);
+      alarms.add((int)alarmFlags.TEMPERATURE_SENSOR_FAILURE);
+      alarms.add((int)alarmFlags.HUMIDITY_SENSOR_FAILURE);
+      alarms.add((int)alarmFlags.SECURITY_MODE_HIGH);
+      alarms.add((int)alarmFlags.SECURITY_MODE_LOW);
+      alarms.add((int)alarmFlags.TEMPERATURE_LOW);
+      alarms.add((int)alarmFlags.TEMPERATURE_HIGH);
+      alarms.add((int)alarmFlags.HUMIDITY_LOW);
+      alarms.add((int)alarmFlags.HUMIDITY_HIGH);
+
+      String jsonStr;
+      serializeJson(doc, jsonStr);
 
       Serial.printf("[WIFI] id: %s, signal: %d \n", wifiDeviceId.value(), wifiSignalQuality.value());
-      mqtt.publish("test-jonas", "ABC123");
+      mqtt.publish("test-jonas", jsonStr.c_str());
     }
 
     mqtt.loop();

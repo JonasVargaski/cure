@@ -72,6 +72,7 @@ BoolStorageModel injectionMachineEnabled(0x1302, &variableMutex);  // controlar 
 TextStorageModel wifiSsidParam(0x1400, &variableMutex, 20);      // define o nome da rede wifi utilizada para conexão
 TextStorageModel wifiPasswordParam(0x1425, &variableMutex, 20);  // define a senha da rede wifi utilizada para conexão
 TextStorageModel wifiDeviceId(0x1450, &variableMutex, 8);        // endereço MAC do dispositivo, utilizado para conexão remota
+TextStorageModel firmwareVersion(0x1460, &variableMutex, 18);    // versão do sofware do dispositivo, defines/version.FIRMWARE_VERSION
 
 // VP 1500~1599
 Uint16StorageModel connectionStatus(0x1500, &variableMutex, 0, 3);             // estado da conexão wifi/servidor do dispositivo [eWifiStatus] (0=DESCONECTADO, 1=CONECTANDO, 2=SEM_INTERNET, 3=CONECTADO)
@@ -124,6 +125,7 @@ std::vector<TextStorageModel*> textDisplayVariables = {
     &wifiSsidParam,
     &wifiPasswordParam,
     &wifiDeviceId,
+    &firmwareVersion,
 };
 
 #endif
