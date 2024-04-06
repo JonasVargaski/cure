@@ -11,6 +11,7 @@
 #include "model/acceleration_ramp_pwm_model.h"
 #include "model/async_timer_model.h"
 #include "model/cyclic_timer_model.h"
+#include "utils/memory.h"
 
 #define MAX_ACCELERATION_RAMP_TIME_MS 1200
 #define SECURITY_MODE_RESET_DIFF 3
@@ -238,7 +239,7 @@ void xTaskControl(void *parameter) {
 
 #pragma endregion
 
-#pragma region DEBUG
+#pragma region DEBUG //TODO: remove this
     if (debug.waitFor(1000)) {
       debug.reset();
       String alarms = "";
@@ -262,6 +263,7 @@ void xTaskControl(void *parameter) {
       if (digitalRead(ePinMap::OUT_ALARM)) Serial.print(" | OUT_ALARM");
       Serial.println();
 
+      Serial.printf("[MEMORY] used: %.2f%%\n", getMemoryUsedPercentage());
       Serial.printf("[ALARM] enabled: %d, alarmState: %s - ", alarmEnabled.value(), shouldActivateAlarm ? "ON" : "OFF");
       Serial.println(alarms);
       Serial.printf("[HUMIDITY] securityModeActivated: %s, pwm: %d, damperState: %s\n", securityModeActivated ? "ON" : "OFF", ledcRead(0), damperDirState == eHumidityDamperStatus::DAMPER_OFF ? "OFF" : damperDirState == eHumidityDamperStatus::DAMPER_OPEN ? "OPEN"

@@ -34,9 +34,9 @@ void setup() {
   randomSeed(millis());
 
   xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 1, NULL, 0);
-  xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 4096, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 2048, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(xTaskDisplay, "displayTask", 4096, NULL, 2, NULL, 1);
-  xTaskCreatePinnedToCore(xTaskWifi, "wifiTask", 4096, NULL, 3, NULL, 1);
+  xTaskCreatePinnedToCore(xTaskWifi, "wifiTask", 6048, NULL, 3, NULL, 1);
 }
 
 void loop() {
