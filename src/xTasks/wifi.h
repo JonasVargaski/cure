@@ -34,23 +34,25 @@ void xTaskWifi(void *parameter) {
 
   wifiDeviceId.setValueSync(deviceId.c_str());
 
-  WiFi.begin(wifiSsidParam.value(), wifiPasswordParam.value());
   WiFi.mode(WIFI_MODE_STA);
 
-  // mqtt.setBufferSize(JSON_SIZE);
   mqtt.setServer(MQTT_BROKER, MQTT_PORT);
   mqtt.setCallback(onReceived);
 
   while (1) {
     while (WiFi.status() != WL_CONNECTED) {
+      WiFi.begin(wifiSsidParam.value(), wifiPasswordParam.value());
       wifiSignalQuality.setValueSync(0, false);
       connectionStatus.setValueSync(WiFi.status() == WL_CONNECT_FAILED ? eWifiStatus::DISCONNECTED : eWifiStatus::CONNECTING, false);
       vTaskDelay(pdMS_TO_TICKS(3000));
     }
 
     while (!mqtt.connected()) {
-      if (mqtt.connect((deviceId + String(random(0xffff), HEX)).c_str())) {
-        mqtt.subscribe("testTopic1");
+      if (mqtt.connect((String(random(0xffff), HEX) + String(random(0xffff), HEX)).c_str())) {
+        char receiveTopic[15];
+        sprintf(receiveTopic, "%s-%04d", wifiDeviceId.value(), remotePasswordParam.value());
+        mqtt.subscribe(receiveTopic);
+        Serial.printf("listening on topic: %s\n", receiveTopic);
       } else {
         connectionStatus.setValueSync(eWifiStatus::WITHOUT_INTERNET, false);
       }
@@ -65,10 +67,10 @@ void xTaskWifi(void *parameter) {
       Serial.printf("[WIFI] id: %s, signal: %d \n", wifiDeviceId.value(), wifiSignalQuality.value());
       mqtt.publish("test-jonas", "ABC123");
     }
-  }
 
-  mqtt.loop();
-  vTaskDelay(pdMS_TO_TICKS(30));
+    mqtt.loop();
+    vTaskDelay(pdMS_TO_TICKS(30));
+  }
 }
 
 #endif

@@ -59,7 +59,7 @@ Uint16StorageModel alarmHumidityTypeParam(0x1215, &variableMutex, 0, 3);        
 Uint16StorageModel alarmSecurityTypeParam(0x1216, &variableMutex, 0, 3);                 // define tipo de acionamento do alarme do modo de segurança [eAlarmType] (0=NENHUM, 1=BAIXO, 2=ALTO, 3=TODOS)
 BoolStorageModel alarmVentilationTypeParam(0x1217, &variableMutex);                      // define se gera alarme de ventilação [eYesOrNo] (0=NÃO, 1=SIM)
 BoolStorageModel alarmElectricalSupplyTypeParam(0x1218, &variableMutex);                 // define se gera alarme de falta de energia [eYesOrNo] (0=NÃO, 1=SIM)
-Uint16StorageModel remotePasswordParam(0x1219, &variableMutex, 1000, 9999);              // define a senha de acesso remoto ao controlador (utilizada para acessar app)
+Uint16StorageModel remotePasswordParam(0x1219, &variableMutex, 1, 9999);                 // define a senha de acesso remoto ao controlador (utilizada para acessar app)
 Uint16StorageModel temperatureFanReactiveParam(0x1220, &variableMutex, 0, 600);          // [MINUTES] contagem de tempo quando ventoinha está desligada para religar automaticamente (0=DESATIVADO)
 BoolStorageModel failFlagsBlockParam(0x1221, &variableMutex);                            // define se habilita bloqueio/modo de segurança por falta de ventilação ou energia [eYesOrNo] (0=NÃO, 1=SIM)
 
