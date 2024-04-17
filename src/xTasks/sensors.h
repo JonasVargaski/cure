@@ -21,6 +21,8 @@ float adcToFahrenheit(uint16_t value) {
   return lm35_temperature_fahrenheit < 33 ? 0 : lm35_temperature_fahrenheit;
 }
 
+TaskHandle_t xTaskSensorsHandle;
+
 void xTaskSensors(void *parameter) {
   Adafruit_ADS1115 ads(0x48);
 

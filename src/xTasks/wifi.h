@@ -16,6 +16,8 @@
 #define MQTT_PORT 1883
 #define MQTT_BUFFER_SIZE 512
 
+TaskHandle_t xTaskWifiHandle;
+
 void xTaskWifi(void* parameter) {
   bool registered = false;
   WiFiClient wifi;

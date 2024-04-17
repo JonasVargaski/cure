@@ -41,6 +41,8 @@ void resetIOs() {
   }
 }
 
+TaskHandle_t xTaskControlHandle;
+
 void xTaskControl(void *parameter) {
   AsyncTimerModel debug;
 
