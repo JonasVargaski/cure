@@ -30,14 +30,10 @@ void xTaskSensors(void *parameter) {
   ads.begin();
 
   temperatureSensor.setValidRange(33, 200);
-  temperatureSensor.setConversionCallback([](uint16_t value) {  // mock
-    return 100;
-  });
-
   humiditySensor.setValidRange(33, 200);
-  humiditySensor.setConversionCallback([](uint16_t value) {  // mock
-    return 100;
-  });
+
+  temperatureSensor.setConversionCallback(adcToCelsius);
+  humiditySensor.setConversionCallback(adcToCelsius);
 
   while (1) {
     temperatureSensor.addValue(ads.readADC_SingleEnded(0));

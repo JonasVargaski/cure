@@ -13,29 +13,27 @@
 #include "model/cyclic_timer_model.h"
 #include "utils/memory.h"
 
-#define MAX_ACCELERATION_RAMP_TIME_MS 1200
+#define MAX_ACCELERATION_RAMP_TIME_MS 1000
 #define SECURITY_MODE_RESET_DIFF 3
 
 enum ePinMap {
-  IN_ELECTRICAL = 34,
-  IN_VENTILATION = 35,
+  IN_ELECTRICAL = 15,
+  IN_VENTILATION = 2,
   OUT_ALARM = 13,
-  OUT_FAN = 32,
-  OUT_TEMP_DAMPER_A = 12,  // TODO: check if implement
-  OUT_TEMP_DAMPER_B = 26,  // TODO: check if implement
-  OUT_DAMPER_A = 27,
-  OUT_DAMPER_B = 14,
-  OUT_DAMPER_PWM = 2,  // 15
-  OUT_INJECTION_A = 33,
-  OUT_INJECTION_B = 25,
+  OUT_FAN = 26,
+  OUT_DAMPER_A = 14,
+  OUT_DAMPER_B = 33,
+  OUT_DAMPER_PWM = 32,
+  OUT_INJECTION_A = 25,
+  OUT_INJECTION_B = 27,
 };
 
 void resetIOs() {
-  pinMode(ePinMap::IN_ELECTRICAL, INPUT_PULLUP);
-  pinMode(ePinMap::IN_VENTILATION, INPUT_PULLUP);
+  pinMode(ePinMap::IN_ELECTRICAL, INPUT_PULLDOWN);
+  pinMode(ePinMap::IN_VENTILATION, INPUT_PULLDOWN);
 
-  int pins[8] = {ePinMap::OUT_ALARM, ePinMap::OUT_DAMPER_A, ePinMap::OUT_DAMPER_B, ePinMap::OUT_FAN, ePinMap::OUT_INJECTION_A, ePinMap::OUT_INJECTION_B, ePinMap::OUT_TEMP_DAMPER_A, ePinMap::OUT_TEMP_DAMPER_B};
-  for (int i = 0; i < 8; i++) {
+  int pins[6] = {ePinMap::OUT_ALARM, ePinMap::OUT_DAMPER_A, ePinMap::OUT_DAMPER_B, ePinMap::OUT_FAN, ePinMap::OUT_INJECTION_A, ePinMap::OUT_INJECTION_B};
+  for (int i = 0; i < 6; i++) {
     pinMode(pins[i], OUTPUT);
     digitalWrite(pins[i], LOW);
   }
