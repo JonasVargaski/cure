@@ -37,4 +37,8 @@ enum eWifiStatus {
   CONNECTED
 };
 
+enum eRemoteTriggerCallback {
+  OTA_UPDATE = 0,
+};
+
 #endif

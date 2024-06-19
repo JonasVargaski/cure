@@ -10,6 +10,7 @@
 #include "model/async_timer_model.h"
 #include "utils/array_utils.h"
 #include "utils/device_id.h"
+#include "utils/ota_update.h"
 #include "utils/wifi_signal_level.h"
 
 #define MQTT_BROKER "broker.mqtt-dashboard.com"
@@ -54,6 +55,12 @@ void xTaskWifi(void* parameter) {
     JsonArray data = doc["data"];
     for (JsonVariant item : data) {
       uint16_t address = item[0];
+
+      if (address == eRemoteTriggerCallback::OTA_UPDATE) {
+        runOTAUpdate(item[1]);
+        continue;
+      }
+
       if (checkIfNumberExists(address, blackListParams))
         continue;
 
