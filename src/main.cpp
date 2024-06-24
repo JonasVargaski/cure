@@ -20,6 +20,7 @@ void setup() {
   esp_task_wdt_init(5, true);
 
   Serial.begin(115200);
+  Serial.println(F("\nBooting...\n\n"));
 
   resetIOs();
 
