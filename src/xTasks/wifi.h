@@ -59,7 +59,7 @@ void xTaskWifi(void* parameter) {
       uint16_t address = item[0];
 
       if (address == eRemoteTriggerCallback::OTA_UPDATE) {
-        runOTAUpdate(item[1]);
+        updateFirmware(item[1]);
         continue;
       }
 
