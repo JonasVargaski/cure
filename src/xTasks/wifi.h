@@ -44,6 +44,8 @@ void xTaskWifi(void* parameter) {
   mqtt.setBufferSize(MQTT_BUFFER_SIZE);
   mqtt.setServer(MQTT_BROKER, MQTT_PORT);
   mqtt.setCallback([mqttTopic](char* topic, byte* payload, unsigned int length) {
+    Serial.print(F("[WIFI] Message received"));
+
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, payload, length);
     if (error) return;
