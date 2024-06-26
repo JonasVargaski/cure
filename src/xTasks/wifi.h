@@ -51,7 +51,7 @@ void xTaskWifi(void* parameter) {
     if (error) return;
 
     uint16_t blackListParams[] = {
-        alarmOutputState.address(), temperatureFanOutputState.address(), humidityDamperOutputState.address(), injectionMachineOutputState.value(),
+        alarmOutputState.address(), temperatureFanOutputState.address(), humidityDamperOutputState.address(), injectionMachineOutputStateA.value(),
         wifiDeviceId.address(), firmwareVersion.address(), remotePasswordParam.address(), connectionStatus.address(), wifiSignalQuality.address()};
 
     JsonArray data = doc["data"];

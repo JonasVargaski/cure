@@ -62,6 +62,7 @@ BoolStorageModel alarmElectricalSupplyTypeParam(0x1218, &variableMutex);        
 Uint16StorageModel remotePasswordParam(0x1219, &variableMutex, 1, 9999);                 // define a senha de acesso remoto ao controlador (utilizada para acessar app)
 Uint16StorageModel temperatureFanReactiveParam(0x1220, &variableMutex, 0, 600);          // [MINUTES] contagem de tempo quando ventoinha está desligada para religar automaticamente (0=DESATIVADO)
 BoolStorageModel failFlagsBlockParam(0x1221, &variableMutex);                            // define se habilita bloqueio/modo de segurança por falta de ventilação ou energia [eYesOrNo] (0=NÃO, 1=SIM)
+BoolStorageModel humiditySensorType(0x1222, &variableMutex);                             // Tipo do sensor de umidade [eYesOrNo] (0=ºF, 1=%)
 
 // VP 1300~1399
 BoolStorageModel alarmEnabled(0x1300, &variableMutex);             // controlar se alarme pode ligar [eYesOrNo] (0=NÃO, 1=SIM)
@@ -80,7 +81,13 @@ Uint16StorageModel wifiSignalQuality(0x1501, &variableMutex, 0, 4);            /
 BoolStorageModel alarmOutputState(0x1502, &variableMutex);                     // indicador do estado da saida do alarme [eOnOff] (0=DESLIGADO, 1=LIGADO)
 Uint16StorageModel humidityDamperOutputState(0x1503, &variableMutex, 0, 2);    // indicador do estado da saida do damper de alarme [eHumidityDamperStatus](0=DESLIGADO, 1=ABRINDO, 2=FECHANDO)
 BoolStorageModel temperatureFanOutputState(0x1504, &variableMutex);            // indicador do estado da saida da ventoinha [eOnOff] (0=DESLIGADO, 1=LIGADO)
-Uint16StorageModel injectionMachineOutputState(0x1505, &variableMutex, 0, 2);  // indicador do estado da saida da injetora [eInjectionMachineStatus] (0=DESLIGADO, 1=LIGADO, 2=EM LIMPEZA)
+BoolStorageModel injectionMachineOutputStateA(0x1505, &variableMutex);         // indicador do estado da saida 1 da injetora [eInjectionMachineStatus] (0=DESLIGADO, 1=LIGADO)
+BoolStorageModel injectionMachineOutputStateB(0x1506, &variableMutex);         // indicador do estado da saida 2 da injetora [eInjectionMachineStatus] (0=DESLIGADO, 1=LIGADO)
+Uint16StorageModel tempStatusFlagIndicator(0x1507, &variableMutex, 0, 2);      // indicador de flag de temperatura (0=OK, 1=BAIXA, 2=ALTA)
+Uint16StorageModel humidityStatusFlagIndicator(0x1508, &variableMutex, 0, 2);  // indicador de flag de humidade (0=OK, 1=BAIXA, 2=ALTA)
+BoolStorageModel energySupplyInputState(0x1509, &variableMutex);               // indicador de sinal de rede elétrica (0=FALHA, 1=OK)
+BoolStorageModel remoteFailInputState(0x1510, &variableMutex);                 // indicador de sinal de falha externa (0=FALHA, 1=OK)
+Uint16StorageModel alarmReasons(0x1511, &variableMutex, 0, 10);                // indicador de alarme gerado (1=FALHA_SENSOR_TEMP, 2=FALHA_SENSOR_UMID, 3=SEGURANÇA_ALTA, 4=SEGURANÇA_BAIXA, 5=ALTA_TEMP, 6=BAIXA_TEMP, 7=ALTA_UMID, 8=BAIXA_UMID, 9=FALHA_ELETRICA, 10=FALHA_EXTERNA)
 
 std::vector<Uint16StorageModel*> numberDisplayVariables = {
     &temperatureSetPoint,
@@ -106,8 +113,10 @@ std::vector<Uint16StorageModel*> numberDisplayVariables = {
     &injectionMachineDisabledTimeParam,
     &injectionMachineIntervalParam,
     &humidityDamperOutputState,
-    &injectionMachineOutputState,
     &temperatureFanReactiveParam,
+    &tempStatusFlagIndicator,
+    &humidityStatusFlagIndicator,
+    &alarmReasons,
 };
 
 std::vector<BoolStorageModel*> booleanDisplayVariables = {
@@ -119,6 +128,11 @@ std::vector<BoolStorageModel*> booleanDisplayVariables = {
     &alarmOutputState,
     &temperatureFanOutputState,
     &failFlagsBlockParam,
+    &energySupplyInputState,
+    &remoteFailInputState,
+    &injectionMachineOutputStateA,
+    &humiditySensorType,
+    &injectionMachineOutputStateB,
 };
 
 std::vector<TextStorageModel*> textDisplayVariables = {

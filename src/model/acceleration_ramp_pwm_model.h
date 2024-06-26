@@ -18,7 +18,8 @@ class AccelerationRampPwmModel {
   bool _inProgress;
 
   public:
-  AccelerationRampPwmModel(int pin, int channel, int frequency = 15000, int resolutionBits = 10) : _channel(channel), _resolution(resolutionBits) {
+  AccelerationRampPwmModel(int pin, int channel, int frequency = 15000, int resolutionBits = 10)
+      : _channel(channel), _resolution(resolutionBits) {
     _inProgress = false;
     _dutyCycleMax = pow(2, _resolution) - 1;
     ledcSetup(channel, frequency, resolutionBits);
@@ -29,21 +30,23 @@ class AccelerationRampPwmModel {
   void start(int accelerationDurationMs, int maxDutyCycle = 100) {
     if (!_inProgress) {
       ledcWrite(_channel, 0);
-      _startTime = (esp_timer_get_time() / 1000);
+      _startTime = esp_timer_get_time() / 1000;
       _inProgress = true;
     }
 
     if (_inProgress) {
       int dutyCycleMaxTarget = _dutyCycleMax * (maxDutyCycle / 100.0);
-      if (ledcRead(_channel) >= dutyCycleMaxTarget) return;
+      int currentDutyCycle = ledcRead(_channel);
+      if (currentDutyCycle >= dutyCycleMaxTarget) return;
 
       uint32_t elapsedTime = (esp_timer_get_time() / 1000) - _startTime;
       int nextDutyCycle = 0;
       if (elapsedTime < accelerationDurationMs) {
         int dutyCycle = map(elapsedTime, 0, accelerationDurationMs, 0, dutyCycleMaxTarget);
         nextDutyCycle = constrain(dutyCycle, 0, dutyCycleMaxTarget);
-      } else
+      } else {
         nextDutyCycle = dutyCycleMaxTarget;
+      }
 
       ledcWrite(_channel, nextDutyCycle);
     }

@@ -163,7 +163,8 @@ void xTaskControl(void *parameter) {
 
     digitalWrite(ePinMap::OUT_INJECTION_A, injectionMachineState != eInjectionMachineStatus::MACHINE_OFF);
     digitalWrite(ePinMap::OUT_INJECTION_B, injectionMachineState == eInjectionMachineStatus::MACHINE_ON);
-    injectionMachineOutputState.setValueSync(injectionMachineState, false);
+    injectionMachineOutputStateA.setValueSync(digitalRead(ePinMap::OUT_INJECTION_A), false);
+    injectionMachineOutputStateB.setValueSync(digitalRead(ePinMap::OUT_INJECTION_B), false);
 #pragma endregion
 
 #pragma region ALARMS
@@ -240,7 +241,7 @@ void xTaskControl(void *parameter) {
 #pragma endregion
 
 #pragma region DEBUG //TODO: remove this
-    if (debug.waitFor(1000)) {
+    if (debug.waitFor(2000)) {
       debug.reset();
       String alarms = "";
       if (alarmFlags.ELECTRICAL_SUPPLY) alarms.concat("ELECTRICAL_SUPPLY ");
