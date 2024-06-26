@@ -63,7 +63,7 @@ void xTaskWifi(void* parameter) {
         continue;
       }
 
-      if (checkIfNumberExists(address, blackListParams))
+      if (arrayContains(address, blackListParams))
         continue;
 
       bool updated = false;
