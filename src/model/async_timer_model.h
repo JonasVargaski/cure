@@ -24,7 +24,7 @@ class AsyncTimerModel {
 
   bool reset() {
     _complete = false;
-    _startTime = (esp_timer_get_time() / 1000);
+    _startTime = esp_timer_get_time() / 1000;
     return _complete;
   }
 

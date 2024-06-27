@@ -228,7 +228,7 @@ void xTaskControl(void *parameter) {
 
     if (alarmEnabled.value()) {
       reactiveAlarmTimer.reset();
-    } else if (reactiveAlarmTimer.waitFor(alarmReactiveParam.value() * 1000 * 60)) {
+    } else if (alarmReactiveParam.value() > 0 && reactiveAlarmTimer.waitFor(alarmReactiveParam.value() * 1000 * 60)) {
       alarmEnabled.setValueSync(true);
     }
 
