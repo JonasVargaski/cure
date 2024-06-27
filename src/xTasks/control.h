@@ -241,7 +241,7 @@ void xTaskControl(void *parameter) {
 #pragma endregion
 
 #pragma region DEBUG //TODO: remove this
-    if (debug.waitFor(2000)) {
+    if (debug.waitFor(20000)) {
       debug.reset();
       String alarms = "";
       if (alarmFlags.ELECTRICAL_SUPPLY) alarms.concat("ELECTRICAL_SUPPLY ");

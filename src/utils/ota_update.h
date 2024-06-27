@@ -9,9 +9,9 @@
 #include "global.h"
 
 bool updateFirmware(String url) {
-  bool success = false;
   WiFiClientSecure client;
   client.setInsecure();
+
   HTTPClient http;
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
@@ -44,16 +44,16 @@ bool updateFirmware(String url) {
   }
 
   http.end();
-  if (Update.end(true)) {
-    const esp_partition_t* running = esp_ota_get_running_partition();
-    esp_ota_set_boot_partition(running);
-    success = true;
+
+  if (Update.end(true) && Update.isFinished()) {
     Serial.println(F("[OTA] Update Success"));
+    ESP.restart();
+    return true;
   } else {
-    Serial.print(F("[OTA] Update error"));
+    Serial.print(F("[OTA] Update error: "));
     Serial.println(Update.errorString());
   }
-  return success;
+  return false;
 }
 
 #endif
