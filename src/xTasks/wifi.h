@@ -15,7 +15,7 @@
 
 #define MQTT_BROKER "broker.mqtt-dashboard.com"
 #define MQTT_PORT 1883
-#define MQTT_BUFFER_SIZE 512
+#define MQTT_BUFFER_SIZE 612
 
 TaskHandle_t xTaskWifiHandle;
 
@@ -107,6 +107,8 @@ void xTaskWifi(void* parameter) {
 
     while (!mqtt.connected()) {
       vTaskDelay(pdMS_TO_TICKS(20));
+      wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
+
       if (mqtt.connect((String(random(0xffff), HEX) + String(random(0xffff), HEX)).c_str())) {
         mqtt.subscribe(mqttTopic.receiveParams);
         if (!registered) {
@@ -130,7 +132,6 @@ void xTaskWifi(void* parameter) {
     if (sendParamsTimer.waitFor(3000)) {
       sendParamsTimer.reset();
       connectionStatus.setValueSync(eWifiStatus::CONNECTED, false);
-      wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
 
       doc.clear();
       JsonArray data = doc["data"].to<JsonArray>();
@@ -178,6 +179,7 @@ void xTaskWifi(void* parameter) {
 
     mqtt.loop();
     vTaskDelay(pdMS_TO_TICKS(30));
+    wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
   }
 }
 
