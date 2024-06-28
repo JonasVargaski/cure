@@ -15,7 +15,7 @@
 
 #define MQTT_BROKER "broker.mqtt-dashboard.com"
 #define MQTT_PORT 1883
-#define MQTT_BUFFER_SIZE 612
+#define MQTT_BUFFER_SIZE 640
 
 TaskHandle_t xTaskWifiHandle;
 
@@ -39,6 +39,7 @@ void xTaskWifi(void* parameter) {
   } mqttTopic;
 
   WiFi.mode(WIFI_MODE_STA);
+  WiFi.disconnect();
   wifiDeviceId.setValueSync(getDeviceId().c_str());
 
   mqtt.setBufferSize(MQTT_BUFFER_SIZE);

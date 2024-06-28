@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <DWIN.h>
+#include <WiFi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <freertos/task.h>
@@ -31,6 +32,10 @@ void onHMIEvent(DwinFrame* frame) {
       obj->resetTimeUpdate();
       return obj->setValueSync(frame->getTextValue().c_str());
     }
+  }
+
+  if (vp == wifiSsidParam.address() || vp == wifiPasswordParam.address()) {
+    WiFi.disconnect();
   }
 }
 

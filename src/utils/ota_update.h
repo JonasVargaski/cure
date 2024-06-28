@@ -9,8 +9,7 @@
 #include "global.h"
 
 bool updateFirmware(String url) {
-  WiFiClientSecure client;
-  client.setInsecure();
+  WiFiClient client;
 
   HTTPClient http;
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -35,7 +34,6 @@ bool updateFirmware(String url) {
         Update.write(buffer, read);
         written += read;
       }
-      Serial.printf("[OTA] Got %d bytes\n", written);
     } else {
       Serial.printf("[OTA] Error: http status: %d\n", status);
       http.end();
