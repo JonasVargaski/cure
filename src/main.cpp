@@ -20,7 +20,7 @@ void setup() {
   esp_task_wdt_init(5, true);
 
   Serial.begin(115200);
-  Serial.println(F("\nready!\n\n"));
+  Serial.println(F("\nready!\n"));
 
   resetIOs();
 
@@ -43,10 +43,10 @@ void setup() {
   randomSeed(millis());
 
   restartWifiTask();
-  xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 1, &xTaskControlHandle, 0);
   xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 2048, NULL, 1, &xTaskSensorsHandle, 1);
 
   delay(3000);
+  xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 1, &xTaskControlHandle, 0);
   xTaskCreatePinnedToCore(xTaskDisplay, "displayTask", 4096, NULL, 2, &xTaskDisplayHandle, 1);
 }
 
