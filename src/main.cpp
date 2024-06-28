@@ -40,13 +40,14 @@ void setup() {
   sensorMutex = xSemaphoreCreateMutex();
   outputMutex = xSemaphoreCreateMutex();
 
-  delay(500);
   randomSeed(millis());
 
+  restartWifiTask();
   xTaskCreatePinnedToCore(xTaskControl, "controlTask", 4096, NULL, 1, &xTaskControlHandle, 0);
   xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 2048, NULL, 1, &xTaskSensorsHandle, 1);
+
+  delay(3000);
   xTaskCreatePinnedToCore(xTaskDisplay, "displayTask", 4096, NULL, 2, &xTaskDisplayHandle, 1);
-  xTaskCreatePinnedToCore(xTaskWifi, "wifiTask", 8048, NULL, 3, &xTaskWifiHandle, 1);
 }
 
 void loop() {

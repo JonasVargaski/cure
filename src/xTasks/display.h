@@ -9,11 +9,16 @@
 #include <freertos/task.h>
 
 #include "global.h"
+#include "xTasks/wifi.h"
 
 void onHMIEvent(DwinFrame* frame) {
   frame->print();
 
   uint16_t vp = frame->getVPAddress();
+
+  if (vp == wifiSsidParam.address() || vp == wifiPasswordParam.address() || vp == remotePasswordParam.address()) {
+    restartWifiTask();
+  }
 
   for (Uint16StorageModel* obj : numberDisplayVariables) {
     if (obj->address() == vp) {
@@ -33,10 +38,6 @@ void onHMIEvent(DwinFrame* frame) {
       return obj->setValueSync(frame->getTextValue().c_str());
     }
   }
-
-  if (vp == wifiSsidParam.address() || vp == wifiPasswordParam.address()) {
-    WiFi.disconnect();
-  }
 }
 
 TaskHandle_t xTaskDisplayHandle;
@@ -45,6 +46,7 @@ void xTaskDisplay(void* parameter) {
   DWIN hmi(Serial2, 16, 17, 115200, 35);
   hmi.hmiCallBack(onHMIEvent);
   hmi.setBrightness(60);
+  hmi.setPage(1);
 
   TickType_t xLastWakeTime = 0;
 

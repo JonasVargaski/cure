@@ -6,54 +6,51 @@
 #include <WiFi.h>
 
 #include "enums.h"
+#include "esp_task_wdt.h"
 #include "global.h"
 #include "model/async_timer_model.h"
 #include "utils/array_utils.h"
-#include "utils/device_id.h"
 #include "utils/ota_update.h"
 #include "utils/wifi_signal_level.h"
 
 #define MQTT_BROKER "broker.mqtt-dashboard.com"
 #define MQTT_PORT 1883
-#define MQTT_BUFFER_SIZE 640
+#define MQTT_BUFFER_SIZE 600
 
-TaskHandle_t xTaskWifiHandle;
+TaskHandle_t xTaskWifiHandle = NULL;
 
 void xTaskWifi(void* parameter) {
+  WiFi.disconnect();
   bool registered = false;
   WiFiClient wifi;
   PubSubClient mqtt(wifi);
 
-  AsyncTimerModel sendParamsTimer;
+  AsyncTimerModel updateTimer;
   JsonDocument doc;
 
-  struct MqttTopics {
-    char params[20];
-    char receiveParams[26];
+  static String deviceId = WiFi.macAddress();
+  deviceId.replace(":", "");
+  deviceId.toLowerCase();
 
-    MqttTopics() {
-      String deviceId = getDeviceId();
-      snprintf(params, sizeof(params), "/cure/%s", deviceId);
-      snprintf(receiveParams, sizeof(receiveParams), "/cure/%s:%04d", deviceId, remotePasswordParam.value());
-    }
-  } mqttTopic;
+  static char MQTT_TOPIC_PARAMS[20];
+  snprintf(MQTT_TOPIC_PARAMS, sizeof(MQTT_TOPIC_PARAMS), "/cure/%s", deviceId);
 
   WiFi.mode(WIFI_MODE_STA);
   WiFi.disconnect();
-  wifiDeviceId.setValueSync(getDeviceId().c_str());
+  wifiDeviceId.setValueSync(deviceId.c_str());
 
   mqtt.setBufferSize(MQTT_BUFFER_SIZE);
   mqtt.setServer(MQTT_BROKER, MQTT_PORT);
-  mqtt.setCallback([mqttTopic](char* topic, byte* payload, unsigned int length) {
-    Serial.print(F("[WIFI] Message received"));
+  mqtt.setCallback([](char* topic, byte* payload, unsigned int length) {
+    Serial.println(F("\n[WIFI] Message received"));
 
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, payload, length);
     if (error) return;
 
     uint16_t blackListParams[] = {
-        alarmOutputState.address(), temperatureFanOutputState.address(), humidityDamperOutputState.address(), injectionMachineOutputStateA.value(),
-        wifiDeviceId.address(), firmwareVersion.address(), remotePasswordParam.address(), connectionStatus.address(), wifiSignalQuality.address()};
+        alarmOutputState.address(), temperatureFanOutputState.address(), humidityDamperOutputState.address(),
+        injectionMachineOutputStateA.value(), wifiDeviceId.address(), firmwareVersion.address(), remotePasswordParam.address()};
 
     JsonArray data = doc["data"];
     for (JsonVariant item : data) {
@@ -108,20 +105,26 @@ void xTaskWifi(void* parameter) {
 
     while (!mqtt.connected()) {
       vTaskDelay(pdMS_TO_TICKS(20));
-      wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
+      if (updateTimer.waitFor(3000)) {
+        updateTimer.reset();
+        wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
+      }
 
       if (mqtt.connect((String(random(0xffff), HEX) + String(random(0xffff), HEX)).c_str())) {
-        mqtt.subscribe(mqttTopic.receiveParams);
+        char MQTT_TOPIC_RECEIVE_PARAMS[26];
+        snprintf(MQTT_TOPIC_RECEIVE_PARAMS, sizeof(MQTT_TOPIC_RECEIVE_PARAMS), "/cure/%s:%04d", deviceId, remotePasswordParam.value());
+        mqtt.subscribe(MQTT_TOPIC_RECEIVE_PARAMS);
+
         if (!registered) {
           doc.clear();
           JsonArray data = doc.to<JsonArray>();
           data.add(wifiDeviceId.value());
           data.add(remotePasswordParam.value());
-          data.add(mqttTopic.receiveParams);
+          data.add(MQTT_TOPIC_RECEIVE_PARAMS);
           data.add(firmwareVersion.value());
           data.add(BUILD_TIME);
 
-          char buffer[128];
+          char buffer[100];
           size_t jsonLength = serializeJson(doc, buffer);
           registered = mqtt.publish("/cure/on/register", buffer, jsonLength);
         }
@@ -130,9 +133,10 @@ void xTaskWifi(void* parameter) {
       }
     }
 
-    if (sendParamsTimer.waitFor(3000)) {
-      sendParamsTimer.reset();
+    if (updateTimer.waitFor(3000)) {
+      updateTimer.reset();
       connectionStatus.setValueSync(eWifiStatus::CONNECTED, false);
+      wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
 
       doc.clear();
       JsonArray data = doc["data"].to<JsonArray>();
@@ -175,13 +179,22 @@ void xTaskWifi(void* parameter) {
 
       char buffer[MQTT_BUFFER_SIZE];
       size_t jsonLength = serializeJson(doc, buffer);
-      mqtt.publish(mqttTopic.params, buffer, jsonLength);
+      mqtt.publish(MQTT_TOPIC_PARAMS, buffer, jsonLength);
     }
 
     mqtt.loop();
     vTaskDelay(pdMS_TO_TICKS(30));
-    wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
   }
+}
+
+void restartWifiTask() {
+  if (xTaskWifiHandle != NULL) {
+    vTaskDelete(xTaskWifiHandle);
+    xTaskWifiHandle = NULL;
+  }
+
+  Serial.println(F("wifiTask started"));
+  xTaskCreatePinnedToCore(xTaskWifi, "wifiTask", 8048, NULL, 3, &xTaskWifiHandle, 1);
 }
 
 #endif
