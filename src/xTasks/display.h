@@ -15,28 +15,41 @@ void onHMIEvent(DwinFrame* frame) {
   frame->print();
 
   uint16_t vp = frame->getVPAddress();
+  bool updated = false;
+
+  if (!updated) {
+    for (Uint16StorageModel* obj : numberDisplayVariables) {
+      if (obj->address() == vp) {
+        updated = true;
+        obj->resetTimeUpdate();
+        obj->setValueSync(frame->getWorldValue());
+        break;
+      }
+    }
+  }
+  if (!updated) {
+    for (BoolStorageModel* obj : booleanDisplayVariables) {
+      if (obj->address() == vp) {
+        updated = true;
+        obj->resetTimeUpdate();
+        obj->setValueSync(frame->getWorldValue());
+        break;
+      }
+    }
+  }
+  if (!updated) {
+    for (TextStorageModel* obj : textDisplayVariables) {
+      if (obj->address() == vp) {
+        updated = true;
+        obj->resetTimeUpdate();
+        obj->setValueSync(frame->getTextValue().c_str());
+        break;
+      }
+    }
+  }
 
   if (vp == wifiSsidParam.address() || vp == wifiPasswordParam.address() || vp == remotePasswordParam.address()) {
     restartWifiTask();
-  }
-
-  for (Uint16StorageModel* obj : numberDisplayVariables) {
-    if (obj->address() == vp) {
-      obj->resetTimeUpdate();
-      return obj->setValueSync(frame->getWorldValue());
-    }
-  }
-  for (BoolStorageModel* obj : booleanDisplayVariables) {
-    if (obj->address() == vp) {
-      obj->resetTimeUpdate();
-      return obj->setValueSync(frame->getWorldValue());
-    }
-  }
-  for (TextStorageModel* obj : textDisplayVariables) {
-    if (obj->address() == vp) {
-      obj->resetTimeUpdate();
-      return obj->setValueSync(frame->getTextValue().c_str());
-    }
   }
 }
 

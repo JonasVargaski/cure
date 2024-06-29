@@ -28,7 +28,7 @@ void xTaskWifi(void* parameter) {
   AsyncTimerModel updateTimer;
   JsonDocument doc;
 
-  static String deviceId = WiFi.macAddress();
+  String deviceId = WiFi.macAddress();
   deviceId.replace(":", "");
   deviceId.toLowerCase();
 
@@ -99,16 +99,14 @@ void xTaskWifi(void* parameter) {
     while (WiFi.status() != WL_CONNECTED) {
       WiFi.begin(wifiSsidParam.value(), wifiPasswordParam.value());
       wifiSignalQuality.setValueSync(0, false);
-      connectionStatus.setValueSync(WiFi.status() == WL_CONNECT_FAILED ? eWifiStatus::DISCONNECTED : eWifiStatus::CONNECTING, false);
+      connectionStatus.setValueSync(eWifiStatus::DISCONNECTED, false);
       vTaskDelay(pdMS_TO_TICKS(3000));
     }
 
     while (!mqtt.connected()) {
-      vTaskDelay(pdMS_TO_TICKS(20));
-      if (updateTimer.waitFor(3000)) {
-        updateTimer.reset();
-        wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
-      }
+      wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
+      connectionStatus.setValueSync(eWifiStatus::CONNECTING, false);
+      vTaskDelay(pdMS_TO_TICKS(3000));
 
       if (mqtt.connect((String(random(0xffff), HEX) + String(random(0xffff), HEX)).c_str())) {
         char MQTT_TOPIC_RECEIVE_PARAMS[26];
@@ -124,9 +122,9 @@ void xTaskWifi(void* parameter) {
           data.add(firmwareVersion.value());
           data.add(BUILD_TIME);
 
-          char buffer[100];
-          size_t jsonLength = serializeJson(doc, buffer);
-          registered = mqtt.publish("/cure/on/register", buffer, jsonLength);
+          static char buffer[100];
+          serializeJson(doc, buffer);
+          registered = mqtt.publish("/cure/on/register", buffer);
         }
       } else {
         connectionStatus.setValueSync(eWifiStatus::WITHOUT_INTERNET, false);
@@ -177,9 +175,9 @@ void xTaskWifi(void* parameter) {
       alarms.add((int)alarmFlags.HUMIDITY_LOW);
       alarms.add((int)alarmFlags.HUMIDITY_HIGH);
 
-      char buffer[MQTT_BUFFER_SIZE];
-      size_t jsonLength = serializeJson(doc, buffer);
-      mqtt.publish(MQTT_TOPIC_PARAMS, buffer, jsonLength);
+      static char buffer[MQTT_BUFFER_SIZE];
+      serializeJson(doc, buffer);
+      mqtt.publish(MQTT_TOPIC_PARAMS, buffer);
     }
 
     mqtt.loop();
@@ -189,6 +187,7 @@ void xTaskWifi(void* parameter) {
 
 void restartWifiTask() {
   if (xTaskWifiHandle != NULL) {
+    WiFi.disconnect();
     vTaskDelete(xTaskWifiHandle);
     xTaskWifiHandle = NULL;
   }

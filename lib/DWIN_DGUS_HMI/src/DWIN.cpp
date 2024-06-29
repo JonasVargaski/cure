@@ -103,7 +103,7 @@ void DWIN::setText(long address, String textData) {
 }
 
 // Set WordData on VP Address
-void DWIN::setVPWord(long address, int data) {
+void DWIN::setVPWord(long address, uint16_t data) {
   handle();
   // 0x5A, 0xA5, 0x05, 0x82, hiVPaddress, loVPaddress, hiData, loData
   byte sendBuffer[] = {CMD_HEAD1, CMD_HEAD2, 0x05, CMD_WRITE, (uint8_t)((address >> 8) & 0xFF), (uint8_t)((address) & 0xFF), (uint8_t)((data >> 8) & 0xFF), (uint8_t)((data) & 0xFF)};
