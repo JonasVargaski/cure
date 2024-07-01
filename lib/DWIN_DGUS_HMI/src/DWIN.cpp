@@ -86,19 +86,16 @@ void DWIN::setRTCSOFT(byte year, byte month, byte day, byte weekday, byte hour, 
 }
 
 // Set Text on VP Address
-void DWIN::setText(long address, String textData) {
-  byte ffEnding[2] = {0xFF, 0xFF};
-  int dataLen = textData.length();
-  byte startCMD[] = {CMD_HEAD1, CMD_HEAD2, (uint8_t)(dataLen + 5), CMD_WRITE,
-                     (uint8_t)((address >> 8) & 0xFF), (uint8_t)((address) & 0xFF)};
-  byte dataCMD[dataLen];
-  textData.getBytes(dataCMD, dataLen + 1);
-  byte sendBuffer[8 + dataLen];
-
-  memcpy(sendBuffer, startCMD, sizeof(startCMD));
-  memcpy(sendBuffer + 6, dataCMD, sizeof(dataCMD));
-  memcpy(sendBuffer + (6 + sizeof(dataCMD)), ffEnding, 2);  // add ending 0xFFFF
-  _dwinSerial->write(sendBuffer, sizeof(sendBuffer));
+void DWIN::setText(long address, const String &textData) {
+  byte data[textData.length() + 7];
+  data[0] = CMD_HEAD1;
+  data[1] = CMD_HEAD2;
+  data[2] = textData.length() + 4;
+  data[3] = CMD_WRITE;
+  data[4] = highByte(address);
+  data[5] = lowByte(address);
+  textData.getBytes(data + 6, textData.length() + 1);
+  _dwinSerial->write(data, sizeof(data));
   readDWIN();
 }
 
@@ -188,7 +185,8 @@ void DWIN::hmiCallBack(hmiListener callBack) {
 DwinFrame *DWIN::readDWIN() {
   frame.clear();
   TickType_t xLastWakeTime = xTaskGetTickCount();
-  while (xTaskGetTickCount() - xLastWakeTime < pdMS_TO_TICKS(CMD_READ_TIMEOUT)) {
+  TickType_t xEndTime = xLastWakeTime + pdMS_TO_TICKS(CMD_READ_TIMEOUT);
+  while (xTaskGetTickCount() < xEndTime) {
     if (_dwinSerial->available() > 0) {
       if (frame.push(_dwinSerial->read())) {
         break;
@@ -200,7 +198,7 @@ DwinFrame *DWIN::readDWIN() {
 
 DwinFrame *DWIN::handle() {
   if (_dwinSerial->available() > 0) {
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(3));
     frame.clear();
     while (_dwinSerial->available() > 0) {
       if (frame.push(_dwinSerial->read())) {

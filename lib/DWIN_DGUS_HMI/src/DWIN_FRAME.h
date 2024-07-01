@@ -20,13 +20,8 @@ class DwinFrame {
   byte *array;
 
   public:
-  DwinFrame(int arraySize) {
-    size = arraySize;
-    currentIndex = 0;
-    array = new byte[size];
-    for (int i = 0; i < size; i++) {
-      array[i] = 0;
-    }
+  DwinFrame(int arraySize) : size(arraySize), currentIndex(0) {
+    array = new byte[size]();
   }
 
   ~DwinFrame() {
@@ -35,18 +30,16 @@ class DwinFrame {
 
   void clear() {
     currentIndex = 0;
-    for (int i = 0; i < size; i++) {
-      array[i] = 0;
-    }
+    memset(array, 0, size);
   }
 
   // (5A A5) (0C) [83] [10 00] [04] [00 00 00 59 00 19 00 00]
-  bool isValid() {
+  bool isValid() const {
     return (array[0] == CMD_HEAD1 && array[1] == CMD_HEAD2 && array[2] == (currentIndex - 3));
   }
 
   bool push(byte data) {
-    if (array[0] != CMD_HEAD1) {
+    if (currentIndex == 0 ^ array[0] != CMD_HEAD1) {
       array[0] = data;
       currentIndex = 1;
       return false;
@@ -64,13 +57,12 @@ class DwinFrame {
       return false;
     }
 
-    array[currentIndex] = data;
-    currentIndex++;
+    array[currentIndex++] = data;
     return isValid();
   }
 
   // [5A A5] [0C] (83) [10 00] [04] [00 00 00 59 00 19 00 00]
-  char getInstruction() {
+  char getInstruction() const {
     if (array[3] == CMD_WRITE)
       return 'W';
     if (array[3] == CMD_READ)
@@ -79,48 +71,47 @@ class DwinFrame {
   }
 
   // [5A A5] [0C] [83] (10 00) [04] [00 00 00 59 00 19 00 00]
-  uint16_t getVPAddress() {
+  uint16_t getVPAddress() const {
     return isValid() ? (uint16_t)(array[4] << 8) | array[5] : 0;
   }
 
   // [5A A5] [0C] [83] [10 00] (04) [00 00 00 59 00 19 00 00]
-  int getDataLength() {
-    if (!isValid())
-      return 0;
-    return (int)array[6];
+  int getDataLength() const {
+    return isValid() ? array[6] : 0;
   }
 
   // [5A A5] [0C] [83] [10 00] [04] (00 00 00 59 00 19 00 00)
-  uint16_t getWorldValue(int position = 0) {
+  uint16_t getWorldValue(int position = 0) const {
     if (!isValid())
       return 0;
 
     int maxDataLength = getDataLength();
     int rangePosition = constrain(position, 0, maxDataLength);
     int index = 7 + (rangePosition * 2);
-    return (uint16_t)(array[index] << 8) | array[index + 1];
+    uint16_t value = static_cast<uint16_t>(array[7] << 8) | static_cast<uint16_t>(array[8]);
+    return value;
   }
 
   // [5A A5] [0C] (83) [10 00] [04] (00 00 00 59 00 19 00 00)
   // [5A A5] [03] [82] (4F 4B)
-  String getTextValue() {
-    String value = "";
+  String getTextValue() const {
+    String value;
 
     if (!isValid())
       return value;
 
-    int startIndex = array[3] == 0x83 ? 7 : 4;
+    int startIndex = array[3] == CMD_READ ? 7 : 4;
 
     for (int i = startIndex; i < currentIndex; i++) {
       if (array[i] >= MIN_ASCII && array[i] < MAX_ASCII) {
-        value.concat(char(array[i]));
+        value += char(array[i]);
       }
     }
 
     return value;
   }
 
-  void print() {
+  void print() const {
     Serial.printf("[DEBUG frame%s] ", isValid() ? "" : " INVALID");
     Serial.print(F("Cmd: "));
     Serial.print(getInstruction());

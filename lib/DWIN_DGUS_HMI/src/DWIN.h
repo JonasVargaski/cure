@@ -25,7 +25,7 @@ class DWIN {
   // set LCD Brightness
   byte getBrightness();
   // set Data on VP Address
-  void setText(long address, String textData);
+  void setText(long address, const String &textData);
   // Set WordData on VP Address
   void setVPWord(long address, uint16_t data);
   // read WordData from VP Address you can read sequential multiple words (data returned in rx event)
