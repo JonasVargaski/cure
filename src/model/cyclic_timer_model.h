@@ -32,6 +32,10 @@ class CyclicTimerModel {
   }
 
   bool isEnabledNow() {
+    if (_off_duration <= 0 && _on_duration <= 0) return false;
+    if (_off_duration > 0 && _on_duration <= 0) return false;
+    if (_on_duration > 0 && _off_duration <= 0) return true;
+
     uint32_t currentTime = (esp_timer_get_time() / 1000);
 
     if (_enabled) {
