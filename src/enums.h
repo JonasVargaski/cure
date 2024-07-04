@@ -30,6 +30,12 @@ enum eOnOff {
   ONOFF_ON
 };
 
+enum eArrowIcon {
+  ARROW_NONE,
+  ARROW_DOWN,
+  ARROW_UP
+};
+
 enum eWifiStatus {
   DISCONNECTED,
   CONNECTING,
@@ -39,6 +45,21 @@ enum eWifiStatus {
 
 enum eRemoteTriggerCallback {
   OTA_UPDATE = 0,
+};
+
+enum eDisplayAlarm {
+  ALARM_NONE,
+  TEMPERATURE_SENSOR_FAIL,
+  HUMIDITY_SENSOR_FAIL,
+  SECURITY_MODE_HIGH,
+  SECURITY_MODE_LOW,
+  TEMPERATURE_HIGH,
+  TEMPERATURE_LOW,
+  HUMIDITY_HIGH,
+  HUMIDITY_LOW,
+  ELECTRICAL_FAIL,
+  REMOTE_FAIL,
+  DISPLAY_ALARM_MAX_SIZE
 };
 
 #endif

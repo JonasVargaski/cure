@@ -116,10 +116,10 @@ class DwinFrame {
     Serial.print(F("Cmd: "));
     Serial.print(getInstruction());
     Serial.print(F(", VP: "));
-    Serial.printf("0x%s (%02X%02X)", String(getVPAddress(), HEX), highByte(getVPAddress()), lowByte(getVPAddress()));
+    Serial.printf("%02X%02X", highByte(getVPAddress()), lowByte(getVPAddress()));
 
     int dataLength = getDataLength();
-    Serial.print(F(", DataLength: "));
+    Serial.print(F(", Length: "));
     Serial.print(dataLength);
     if (dataLength > 1) {
       for (int i = 0; i < getDataLength(); i++)

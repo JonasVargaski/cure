@@ -8,13 +8,13 @@
 
 #include "enums.h"
 #include "global.h"
-#include "model/acceleration_ramp_pwm_model.h"
 #include "model/async_timer_model.h"
 #include "model/cyclic_timer_model.h"
+#include "model/pwm_ramp_model.h"
 #include "utils/memory.h"
 
 #define MAX_ACCELERATION_RAMP_TIME_MS 1000
-#define SECURITY_MODE_RESET_DIFF 3
+#define ARROW_DIFF 3
 
 enum ePinMap {
   IN_ELECTRICAL = 15,
@@ -42,21 +42,20 @@ void resetIOs() {
 TaskHandle_t xTaskControlHandle;
 
 void xTaskControl(void *parameter) {
-  AsyncTimerModel debug;
-
   AsyncTimerModel toggleAlarmTimer;
   AsyncTimerModel reactiveAlarmTimer;
   AsyncTimerModel reactiveFanTimer;
   AsyncTimerModel intervalFanStateTimer;
-  AsyncTimerModel intervalInjectMachineStateTimer;
+  AsyncTimerModel injectMachineIntervalTimer;
   AsyncTimerModel injectionMachineClearTimer(true);
   AsyncTimerModel checkVentilationTimer;
   AsyncTimerModel checkElectricalTimer;
+  AsyncTimerModel displayAlarmTimer;
 
   CyclicTimerModel humidityDamperOnOffTimer;
   CyclicTimerModel injectionMachineOnOffTimer;
 
-  AccelerationRampPwmModel humidityDamperOutputRamp(ePinMap::OUT_DAMPER_PWM, 0, 1500);
+  PwmRampModel humidityDamperOutputRamp(ePinMap::OUT_DAMPER_PWM, 0, 2000);
 
   bool securityModeActivated = false;
 
@@ -67,39 +66,59 @@ void xTaskControl(void *parameter) {
   while (1) {
     vTaskDelay(pdMS_TO_TICKS(15));
 
+#pragma region SENSORS
+    int tempSensorValue = temperatureSensor.value();
+    int humidSensorValue = humiditySensor.value();
+
+    activeAlarms[eDisplayAlarm::TEMPERATURE_SENSOR_FAIL] = temperatureSensor.isOutOfRange();
+    activeAlarms[eDisplayAlarm::HUMIDITY_SENSOR_FAIL] = humiditySensor.isOutOfRange();
+#pragma endregion
+
 #pragma region INPUT_FLAGS
-    bool hasVentilationFail = !digitalRead(ePinMap::IN_VENTILATION) ? checkVentilationTimer.waitFor(3000) : checkVentilationTimer.reset();
-    bool hasElectricalFail = !digitalRead(ePinMap::IN_ELECTRICAL) ? checkElectricalTimer.waitFor(3000) : checkElectricalTimer.reset();
+    bool hasRemoteFail = !digitalRead(ePinMap::IN_VENTILATION) ? checkVentilationTimer.waitFor(3000) : checkVentilationTimer.reset();
+    bool hasEnergySupplyFail = !digitalRead(ePinMap::IN_ELECTRICAL) ? checkElectricalTimer.waitFor(3000) : checkElectricalTimer.reset();
+
+    energySupplyInputState.setValueSync(hasEnergySupplyFail, false);
+    remoteFailInputState.setValueSync(hasRemoteFail, false);
+
+    activeAlarms[eDisplayAlarm::REMOTE_FAIL] = hasRemoteFail;
+    activeAlarms[eDisplayAlarm::ELECTRICAL_FAIL] = hasEnergySupplyFail;
 #pragma endregion
 
 #pragma region HUMIDITY_DAMPER
     int damperDirState = eHumidityDamperStatus::DAMPER_OFF;
 
-    if (!securityModeActivated) {
-      if (humiditySensor.value() - humiditySetPoint.value() >= humidityDamperDiffParam.value()) {
+    if (tempSensorValue - temperatureSetPoint.value() >= securityModeTemperatureDiffParam.value()) {
+      securityModeActivated = true;
+      activeAlarms[eDisplayAlarm::SECURITY_MODE_LOW] = false;
+      activeAlarms[eDisplayAlarm::SECURITY_MODE_HIGH] = true;
+      damperDirState = eHumidityDamperStatus::DAMPER_OPEN;
+    } else if (temperatureSetPoint.value() - tempSensorValue >= securityModeTemperatureDiffParam.value()) {
+      securityModeActivated = true;
+      activeAlarms[eDisplayAlarm::SECURITY_MODE_LOW] = true;
+      activeAlarms[eDisplayAlarm::SECURITY_MODE_HIGH] = false;
+      damperDirState = eHumidityDamperStatus::DAMPER_CLOSE;
+    }
+
+    if (securityModeActivated) {
+      if (abs(tempSensorValue - temperatureSetPoint.value()) <= 5) {
+        securityModeActivated = false;
+        activeAlarms[eDisplayAlarm::SECURITY_MODE_LOW] = false;
+        activeAlarms[eDisplayAlarm::SECURITY_MODE_HIGH] = false;
+      }
+    } else {
+      if (humiditySensor.isOutOfRange()) {
+        damperDirState = eHumidityDamperStatus::DAMPER_OFF;
+      } else if (humidSensorValue - humiditySetPoint.value() >= humidityDamperDiffParam.value()) {
         humidityDamperOnOffTimer.setDuration(humidityDamperEnableTimeParam.value(), humidityDamperDisableTimeParam.value() * 1000, false);
         damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_OPEN : eHumidityDamperStatus::DAMPER_OFF;
       } else {
-        humidityDamperOnOffTimer.setDuration(35000, 60000);  // 35s ON, 60s OFF
+        humidityDamperOnOffTimer.setDuration(35000, 60000);  // 35s OPEN, 60s CLOSED
         damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_CLOSE : eHumidityDamperStatus::DAMPER_OFF;
       }
     }
 
-    if (temperatureSensor.value() - temperatureSetPoint.value() >= securityModeTemperatureDiffParam.value()) {
-      damperDirState = eHumidityDamperStatus::DAMPER_OPEN;
-      securityModeActivated = true;
-    } else if (temperatureSetPoint.value() - temperatureSensor.value() >= securityModeTemperatureDiffParam.value()) {
-      damperDirState = eHumidityDamperStatus::DAMPER_CLOSE;
-      securityModeActivated = true;
-    } else if (abs(temperatureSensor.value() - temperatureSetPoint.value()) <= SECURITY_MODE_RESET_DIFF) {
-      securityModeActivated = false;
-    }
-
-    if (humiditySensor.isOutOfRange()) {
-      damperDirState = eHumidityDamperStatus::DAMPER_OFF;
-    }
-
-    if ((hasVentilationFail || hasElectricalFail) && failFlagsBlockParam.value()) {
+    if ((hasRemoteFail || hasEnergySupplyFail) && failFlagsBlockParam.value()) {
       damperDirState = eHumidityDamperStatus::DAMPER_OPEN;
     }
 
@@ -110,9 +129,28 @@ void xTaskControl(void *parameter) {
     if (damperDirState != eHumidityDamperStatus::DAMPER_OFF) {
       int timeEnabled = humidityDamperEnableTimeParam.value();
       humidityDamperOutputRamp.start(constrain(timeEnabled, timeEnabled, MAX_ACCELERATION_RAMP_TIME_MS));
-    } else
+    } else {
       humidityDamperOutputRamp.stop();
+    }
 
+    if (humidSensorValue - humiditySetPoint.value() > ARROW_DIFF) {
+      humidityStatusFlagIndicator.setValueSync(eArrowIcon::ARROW_UP, false);
+    } else if (humiditySetPoint.value() - humidSensorValue > ARROW_DIFF) {
+      humidityStatusFlagIndicator.setValueSync(eArrowIcon::ARROW_DOWN, false);
+    } else {
+      humidityStatusFlagIndicator.setValueSync(eArrowIcon::ARROW_NONE, false);
+    }
+
+    if (humidSensorValue - humiditySetPoint.value() >= alarmHumidityDiffParam.value()) {
+      activeAlarms[eDisplayAlarm::HUMIDITY_LOW] = false;
+      activeAlarms[eDisplayAlarm::HUMIDITY_HIGH] = true;
+    } else if (humiditySetPoint.value() - humidSensorValue >= alarmHumidityDiffParam.value()) {
+      activeAlarms[eDisplayAlarm::HUMIDITY_LOW] = true;
+      activeAlarms[eDisplayAlarm::HUMIDITY_HIGH] = false;
+    } else if (abs(humidSensorValue - humiditySetPoint.value()) < alarmHumidityDiffParam.value() - 1) {
+      activeAlarms[eDisplayAlarm::HUMIDITY_LOW] = false;
+      activeAlarms[eDisplayAlarm::HUMIDITY_HIGH] = false;
+    }
 #pragma endregion
 
 #pragma region TEMPERATURE_FAN
@@ -124,18 +162,37 @@ void xTaskControl(void *parameter) {
 
     bool shouldActivateFan = false;
 
-    if (temperatureFanEnabled.value() && (temperatureSetPoint.value() - temperatureSensor.value()) >= temperatureFanDiffParam.value()) {
-      shouldActivateFan = intervalFanStateTimer.waitFor(temperatureFanIntervalParam.value() * 1000);
+    if (temperatureFanEnabled.value() && (temperatureSetPoint.value() - tempSensorValue) >= temperatureFanDiffParam.value()) {
+      shouldActivateFan = intervalFanStateTimer.waitFor(5000);  // 5 seconds
     } else if (digitalRead(ePinMap::OUT_FAN)) {
       intervalFanStateTimer.reset();
     }
 
-    if (((hasVentilationFail || hasElectricalFail) && failFlagsBlockParam.value()) || temperatureSensor.isOutOfRange()) {
+    if (temperatureSensor.isOutOfRange() || (failFlagsBlockParam.value() && (hasRemoteFail || hasEnergySupplyFail))) {
       shouldActivateFan = false;
     }
 
     digitalWrite(ePinMap::OUT_FAN, shouldActivateFan);
-    temperatureFanOutputState.setValueSync(shouldActivateFan, false);
+    temperatureFanOutputState.setValueSync(digitalRead(ePinMap::OUT_FAN), false);
+
+    if (tempSensorValue - temperatureSetPoint.value() > ARROW_DIFF) {
+      tempStatusFlagIndicator.setValueSync(eArrowIcon::ARROW_UP, false);
+    } else if (temperatureSetPoint.value() - tempSensorValue > ARROW_DIFF) {
+      tempStatusFlagIndicator.setValueSync(eArrowIcon::ARROW_DOWN, false);
+    } else {
+      tempStatusFlagIndicator.setValueSync(eArrowIcon::ARROW_NONE, false);
+    }
+
+    if (tempSensorValue - temperatureSetPoint.value() >= alarmTemperatureDiffParam.value()) {
+      activeAlarms[eDisplayAlarm::TEMPERATURE_LOW] = false;
+      activeAlarms[eDisplayAlarm::TEMPERATURE_HIGH] = true;
+    } else if (temperatureSetPoint.value() - tempSensorValue >= alarmTemperatureDiffParam.value()) {
+      activeAlarms[eDisplayAlarm::TEMPERATURE_LOW] = true;
+      activeAlarms[eDisplayAlarm::TEMPERATURE_HIGH] = false;
+    } else if (abs(tempSensorValue - temperatureSetPoint.value()) < alarmTemperatureDiffParam.value() - 1) {
+      activeAlarms[eDisplayAlarm::TEMPERATURE_LOW] = false;
+      activeAlarms[eDisplayAlarm::TEMPERATURE_HIGH] = false;
+    }
 #pragma endregion
 
 #pragma region TEMPERATURE_INJECTION_MACHINE
@@ -143,18 +200,18 @@ void xTaskControl(void *parameter) {
     int injectionMachineState = eInjectionMachineStatus::MACHINE_OFF;
     injectionMachineOnOffTimer.setDuration(injectionMachineEnableTimeParam.value() * 1000, (injectionMachineDisabledTimeParam.value() + injectionMachineClearTimeParam.value()) * 1000);
 
-    if (shouldActivateFan && injectionMachineEnabled.value() && (temperatureSetPoint.value() - temperatureSensor.value()) >= injectionMachineDiffParam.value()) {
-      shouldActiveInjectionMachine = intervalInjectMachineStateTimer.waitFor(injectionMachineIntervalParam.value() * 1000);
+    if (shouldActivateFan && injectionMachineEnabled.value() && (temperatureSetPoint.value() - tempSensorValue) >= injectionMachineDiffParam.value()) {
+      shouldActiveInjectionMachine = injectMachineIntervalTimer.waitFor(injectionMachineIntervalParam.value() * 1000);
     } else if (digitalRead(ePinMap::OUT_INJECTION_A)) {
-      intervalInjectMachineStateTimer.reset();
+      injectMachineIntervalTimer.reset();
     }
 
-    if (!shouldActiveInjectionMachine) {
-      injectionMachineOnOffTimer.reset();
-      injectionMachineState = eInjectionMachineStatus::MACHINE_OFF;
-    } else {
+    if (shouldActiveInjectionMachine) {
       injectionMachineState = injectionMachineOnOffTimer.isEnabledNow() ? eInjectionMachineStatus::MACHINE_ON : eInjectionMachineStatus::MACHINE_OFF;
       if (injectionMachineState == eInjectionMachineStatus::MACHINE_ON) injectionMachineClearTimer.reset();
+    } else {
+      injectionMachineOnOffTimer.reset();
+      injectionMachineState = eInjectionMachineStatus::MACHINE_OFF;
     }
 
     if (injectionMachineState == eInjectionMachineStatus::MACHINE_OFF && !injectionMachineClearTimer.waitFor(injectionMachineClearTimeParam.value() * 1000)) {
@@ -168,63 +225,39 @@ void xTaskControl(void *parameter) {
 #pragma endregion
 
 #pragma region ALARMS
-    alarmFlags.VENTILATION_FAILURE = hasVentilationFail;
-    alarmFlags.ELECTRICAL_SUPPLY = hasElectricalFail;
-    alarmFlags.TEMPERATURE_SENSOR_FAILURE = temperatureSensor.isOutOfRange();
-    alarmFlags.HUMIDITY_SENSOR_FAILURE = humiditySensor.isOutOfRange();
-
-    if (temperatureSensor.value() - temperatureSetPoint.value() >= securityModeTemperatureDiffParam.value()) {
-      alarmFlags.SECURITY_MODE_LOW = false;
-      alarmFlags.SECURITY_MODE_HIGH = true;
-    } else if (temperatureSetPoint.value() - temperatureSensor.value() >= securityModeTemperatureDiffParam.value()) {
-      alarmFlags.SECURITY_MODE_LOW = true;
-      alarmFlags.SECURITY_MODE_HIGH = false;
-    } else if (abs(temperatureSensor.value() - temperatureSetPoint.value()) <= SECURITY_MODE_RESET_DIFF) {
-      alarmFlags.SECURITY_MODE_LOW = false;
-      alarmFlags.SECURITY_MODE_HIGH = false;
-    }
-
-    if (temperatureSensor.value() - temperatureSetPoint.value() >= alarmTemperatureDiffParam.value()) {
-      alarmFlags.TEMPERATURE_LOW = false;
-      alarmFlags.TEMPERATURE_HIGH = true;
-    } else if (temperatureSetPoint.value() - temperatureSensor.value() >= alarmTemperatureDiffParam.value()) {
-      alarmFlags.TEMPERATURE_LOW = true;
-      alarmFlags.TEMPERATURE_HIGH = false;
-    } else if (abs(temperatureSensor.value() - temperatureSetPoint.value()) < alarmTemperatureDiffParam.value() - 1) {
-      alarmFlags.TEMPERATURE_LOW = false;
-      alarmFlags.TEMPERATURE_HIGH = false;
-    }
-
-    if (humiditySensor.value() - humiditySetPoint.value() >= alarmHumidityDiffParam.value()) {
-      alarmFlags.HUMIDITY_LOW = false;
-      alarmFlags.HUMIDITY_HIGH = true;
-    } else if (humiditySetPoint.value() - humiditySensor.value() >= alarmHumidityDiffParam.value()) {
-      alarmFlags.HUMIDITY_LOW = true;
-      alarmFlags.HUMIDITY_HIGH = false;
-    } else if (abs(humiditySensor.value() - humiditySetPoint.value()) < alarmHumidityDiffParam.value() - 1) {
-      alarmFlags.HUMIDITY_LOW = false;
-      alarmFlags.HUMIDITY_HIGH = false;
-    }
-
-    // End definition alarms
     bool shouldActivateAlarm = false;
 
-    if (alarmFlags.VENTILATION_FAILURE && alarmVentilationTypeParam.value())
+    if (activeAlarms[eDisplayAlarm::REMOTE_FAIL] && alarmVentilationTypeParam.value()) {
       shouldActivateAlarm = true;
-    else if (alarmFlags.ELECTRICAL_SUPPLY && alarmVentilationTypeParam.value())
+    } else if (activeAlarms[eDisplayAlarm::ELECTRICAL_FAIL] && alarmVentilationTypeParam.value()) {
       shouldActivateAlarm = true;
-    else if (alarmFlags.TEMPERATURE_HIGH && (alarmTemperatureTypeParam.value() == eAlarmEnableType::HIGH_VALUE || alarmTemperatureTypeParam.value() == eAlarmEnableType::ALL))
+    } else if (activeAlarms[eDisplayAlarm::TEMPERATURE_HIGH] && (alarmTemperatureTypeParam.value() == eAlarmEnableType::HIGH_VALUE || alarmTemperatureTypeParam.value() == eAlarmEnableType::ALL)) {
       shouldActivateAlarm = true;
-    else if (alarmFlags.TEMPERATURE_LOW && (alarmTemperatureTypeParam.value() == eAlarmEnableType::LOW_VALUE || alarmTemperatureTypeParam.value() == eAlarmEnableType::ALL))
+    } else if (activeAlarms[eDisplayAlarm::TEMPERATURE_LOW] && (alarmTemperatureTypeParam.value() == eAlarmEnableType::LOW_VALUE || alarmTemperatureTypeParam.value() == eAlarmEnableType::ALL)) {
       shouldActivateAlarm = true;
-    else if (alarmFlags.HUMIDITY_HIGH && (alarmHumidityTypeParam.value() == eAlarmEnableType::HIGH_VALUE || alarmHumidityTypeParam.value() == eAlarmEnableType::ALL))
+    } else if (activeAlarms[eDisplayAlarm::HUMIDITY_HIGH] && (alarmHumidityTypeParam.value() == eAlarmEnableType::HIGH_VALUE || alarmHumidityTypeParam.value() == eAlarmEnableType::ALL)) {
       shouldActivateAlarm = true;
-    else if (alarmFlags.HUMIDITY_LOW && (alarmHumidityTypeParam.value() == eAlarmEnableType::LOW_VALUE || alarmHumidityTypeParam.value() == eAlarmEnableType::ALL))
+    } else if (activeAlarms[eDisplayAlarm::HUMIDITY_LOW] && (alarmHumidityTypeParam.value() == eAlarmEnableType::LOW_VALUE || alarmHumidityTypeParam.value() == eAlarmEnableType::ALL)) {
       shouldActivateAlarm = true;
-    else if (alarmFlags.SECURITY_MODE_HIGH && (alarmSecurityTypeParam.value() == eAlarmEnableType::HIGH_VALUE || alarmSecurityTypeParam.value() == eAlarmEnableType::ALL))
+    } else if (activeAlarms[eDisplayAlarm::SECURITY_MODE_HIGH] && (alarmSecurityTypeParam.value() == eAlarmEnableType::HIGH_VALUE || alarmSecurityTypeParam.value() == eAlarmEnableType::ALL)) {
       shouldActivateAlarm = true;
-    else if (alarmFlags.SECURITY_MODE_LOW && (alarmSecurityTypeParam.value() == eAlarmEnableType::LOW_VALUE || alarmSecurityTypeParam.value() == eAlarmEnableType::ALL))
+    } else if (activeAlarms[eDisplayAlarm::SECURITY_MODE_LOW] && (alarmSecurityTypeParam.value() == eAlarmEnableType::LOW_VALUE || alarmSecurityTypeParam.value() == eAlarmEnableType::ALL)) {
       shouldActivateAlarm = true;
+    }
+
+    static int alarmDisplayIndex;
+
+    if (shouldActivateAlarm) {
+      if (displayAlarmTimer.waitFor(3000)) {
+        alarmDisplayIndex = (alarmDisplayIndex + 1) % eDisplayAlarm::DISPLAY_ALARM_MAX_SIZE;
+        if (activeAlarms[alarmDisplayIndex]) {
+          displayAlarmTimer.reset();
+          alarmReasons.setValueSync(alarmDisplayIndex, false);
+        }
+      }
+    } else {
+      alarmReasons.setValueSync(eDisplayAlarm::ALARM_NONE, false);
+    }
 
     if (alarmEnabled.value()) {
       reactiveAlarmTimer.reset();
@@ -238,44 +271,6 @@ void xTaskControl(void *parameter) {
       alarmOutputState.setValueSync(digitalRead(ePinMap::OUT_ALARM), false);
     }
 
-#pragma endregion
-
-#pragma region DEBUG //TODO: remove this
-    if (debug.waitFor(20000)) {
-      debug.reset();
-      String alarms = "";
-      if (alarmFlags.ELECTRICAL_SUPPLY) alarms.concat("ELECTRICAL_SUPPLY ");
-      if (alarmFlags.VENTILATION_FAILURE) alarms.concat("VENTILATION_FAILURE ");
-      if (alarmFlags.TEMPERATURE_SENSOR_FAILURE) alarms.concat("TEMPERATURE_SENSOR_FAILURE ");
-      if (alarmFlags.HUMIDITY_SENSOR_FAILURE) alarms.concat("HUMIDITY_SENSOR_FAILURE ");
-      if (alarmFlags.SECURITY_MODE_LOW) alarms.concat("SECURITY_MODE_LOW ");
-      if (alarmFlags.SECURITY_MODE_HIGH) alarms.concat("SECURITY_MODE_HIGH ");
-      if (alarmFlags.TEMPERATURE_HIGH) alarms.concat("TEMPERATURE_HIGH ");
-      if (alarmFlags.TEMPERATURE_LOW) alarms.concat("TEMPERATURE_LOW ");
-      if (alarmFlags.HUMIDITY_HIGH) alarms.concat("HUMIDITY_HIGH ");
-      if (alarmFlags.HUMIDITY_LOW) alarms.concat("HUMIDITY_LOW ");
-
-      Serial.printf("[OUTPUTS] ");
-      if (digitalRead(ePinMap::OUT_FAN)) Serial.print("OUT_FAN");
-      if (digitalRead(ePinMap::OUT_INJECTION_A)) Serial.print(" | OUT_INJECTION_A");
-      if (digitalRead(ePinMap::OUT_INJECTION_B)) Serial.print(" | OUT_INJECTION_B");
-      if (digitalRead(ePinMap::OUT_DAMPER_A)) Serial.print(" | OUT_DAMPER_A");
-      if (digitalRead(ePinMap::OUT_DAMPER_B)) Serial.print(" | OUT_DAMPER_B");
-      if (digitalRead(ePinMap::OUT_ALARM)) Serial.print(" | OUT_ALARM");
-      Serial.println();
-
-      Serial.printf("[MEMORY] used: %.2f%%\n", getMemoryUsedPercentage());
-      Serial.printf("[ALARM] enabled: %d, alarmState: %s - ", alarmEnabled.value(), shouldActivateAlarm ? "ON" : "OFF");
-      Serial.println(alarms);
-      Serial.printf("[HUMIDITY] securityModeActivated: %s, pwm: %d, damperState: %s\n", securityModeActivated ? "ON" : "OFF", ledcRead(0), damperDirState == eHumidityDamperStatus::DAMPER_OFF ? "OFF" : damperDirState == eHumidityDamperStatus::DAMPER_OPEN ? "OPEN"
-                                                                                                                                                                                                                                                              : "CLOSE");
-      Serial.printf("[FAN] enabled: %d, fanState: %s \n", temperatureFanEnabled.value(), shouldActivateFan ? "ON" : "OFF");
-      Serial.printf("[INJECTION] enabled: %d, injectionState: %s\n", injectionMachineEnabled.value(), injectionMachineState == eInjectionMachineStatus::MACHINE_CLEAR ? "CLEAR" : injectionMachineState == eInjectionMachineStatus::MACHINE_ON ? "ON"
-                                                                                                                                                                                                                                               : "OFF");
-      Serial.printf("[FLAG] ventilationFail: %d, electricalFail: %d \n", hasVentilationFail, hasElectricalFail);
-
-      Serial.println(F("---------------------------------------------------------"));
-    }
 #pragma endregion
   }
 }

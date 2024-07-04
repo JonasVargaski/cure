@@ -8,7 +8,7 @@
 #define LEDC_TIMER LEDC_TIMER_0
 #define LEDC_MODE LEDC_HIGH_SPEED_MODE
 
-class AccelerationRampPwmModel {
+class PwmRampModel {
   private:
   int _channel;
   int _resolution;
@@ -18,7 +18,7 @@ class AccelerationRampPwmModel {
   bool _inProgress;
 
   public:
-  AccelerationRampPwmModel(int pin, int channel, int frequency = 15000, int resolutionBits = 10)
+  PwmRampModel(int pin, int channel, int frequency, int resolutionBits = 10)
       : _channel(channel), _resolution(resolutionBits) {
     _inProgress = false;
     _dutyCycleMax = pow(2, _resolution) - 1;

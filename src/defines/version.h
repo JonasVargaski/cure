@@ -1,7 +1,7 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define BUILD_TIME "v_28062024.090059"
+#define BUILD_TIME "v_03072024.215243"
 
 /* **ANO [YYYY]:** O primeiro número da versão, representa o ano em que foi lançada a atualização */
 /* **MÊS [MM]:** O segundo número da versão, representa o mês em que foi lançada a atualização */
@@ -9,6 +9,6 @@
 /* **MINOR [Y]:** O último número da versão, representa a versão da build do sistema */
 // Ex v2021.06_3.23
 
-#define FIRMWARE_VERSION "v2024.04_0.121"
+#define FIRMWARE_VERSION "v2024.04_0.141"
 
 #endif

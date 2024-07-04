@@ -8,17 +8,17 @@
 
 #include "global.h"
 
-float adcToCelsius(uint16_t value) {
+int adcToCelsius(uint16_t value) {
   float voltage = value * 0.1875 / 1000;
   float temperature = voltage * 100.0;
-  return temperature;
+  return (int)temperature;
 }
 
-float adcToFahrenheit(uint16_t value) {
+int adcToFahrenheit(uint16_t value) {
   float voltage = value * 0.1875 / 1000;
   float temperature = voltage * 100.0;
   float lm35_temperature_fahrenheit = (temperature * 9.0) / 5.0 + 32.0;
-  return lm35_temperature_fahrenheit < 33 ? 0 : lm35_temperature_fahrenheit;
+  return (int)(lm35_temperature_fahrenheit < 33 ? 0 : lm35_temperature_fahrenheit);
 }
 
 TaskHandle_t xTaskSensorsHandle;

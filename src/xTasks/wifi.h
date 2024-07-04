@@ -48,9 +48,7 @@ void xTaskWifi(void* parameter) {
     DeserializationError error = deserializeJson(doc, payload, length);
     if (error) return;
 
-    uint16_t blackListParams[] = {
-        alarmOutputState.address(), temperatureFanOutputState.address(), humidityDamperOutputState.address(),
-        injectionMachineOutputStateA.value(), wifiDeviceId.address(), firmwareVersion.address(), remotePasswordParam.address()};
+    uint16_t blackListParams[] = {wifiDeviceId.address(), firmwareVersion.address(), remotePasswordParam.address()};
 
     JsonArray data = doc["data"];
     for (JsonVariant item : data) {
@@ -164,16 +162,9 @@ void xTaskWifi(void* parameter) {
       }
 
       JsonArray alarms = doc["alarm"].to<JsonArray>();
-      alarms.add((int)alarmFlags.ELECTRICAL_SUPPLY);
-      alarms.add((int)alarmFlags.VENTILATION_FAILURE);
-      alarms.add((int)alarmFlags.TEMPERATURE_SENSOR_FAILURE);
-      alarms.add((int)alarmFlags.HUMIDITY_SENSOR_FAILURE);
-      alarms.add((int)alarmFlags.SECURITY_MODE_HIGH);
-      alarms.add((int)alarmFlags.SECURITY_MODE_LOW);
-      alarms.add((int)alarmFlags.TEMPERATURE_LOW);
-      alarms.add((int)alarmFlags.TEMPERATURE_HIGH);
-      alarms.add((int)alarmFlags.HUMIDITY_LOW);
-      alarms.add((int)alarmFlags.HUMIDITY_HIGH);
+      for (int i = 1; i < eDisplayAlarm::DISPLAY_ALARM_MAX_SIZE - 1; i++) {
+        alarms.add((int)activeAlarms[i]);
+      }
 
       static char buffer[MQTT_BUFFER_SIZE];
       serializeJson(doc, buffer);

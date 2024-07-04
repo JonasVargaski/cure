@@ -46,7 +46,7 @@ class AsyncTimerModel {
     return _complete;
   }
 
-  void print() {
+  void debug() {
     Serial.print(F("duration: "));
     printFormattedTime(_duration);
     Serial.print(F(" remain: "));
