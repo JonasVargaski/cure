@@ -58,7 +58,7 @@ TaskHandle_t xTaskDisplayHandle;
 void xTaskDisplay(void* parameter) {
   DWIN hmi(Serial2, 16, 17, 115200, 35);
   hmi.hmiCallBack(onHMIEvent);
-  hmi.setBrightness(60);
+  hmi.setBrightness(100);
   hmi.setPage(1);
 
   TickType_t xLastWakeTime = 0;

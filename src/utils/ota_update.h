@@ -1,57 +1,40 @@
 #ifndef _OTA_UPDATE_UTILS_
 #define _OTA_UPDATE_UTILS_
 
-#include <HTTPClient.h>
-#include <Update.h>
+#include <HTTPUpdate.h>
 #include <WiFi.h>
-#include <esp_ota_ops.h>
 
-#include "global.h"
+#include "defines/version.h"
 
-bool updateFirmware(String url) {
+void updateFirmware(String url) {
   WiFiClient client;
 
-  HTTPClient http;
-  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  Serial.print(F("OTA: update started, url: "));
+  Serial.println(url);
 
-  if (http.begin(client, url)) {
-    int status = http.GET();
-    Serial.printf("[OTA] Opening %s got %d\n", url.c_str(), status);
-    size_t size = http.getSize();
+  httpUpdate.onProgress([](int cur, int total) {
+    Serial.printf("OTA: update progress %d of %d bytes\n", cur, total);
+  });
 
-    if (status == HTTP_CODE_OK) {
-      Update.begin();
-      Update.onProgress([size](size_t pos, size_t all) {
-        float percentage = (float)pos / (float)all * 100.0;
-        Serial.println("[OTA] Progress: " + String(percentage, 2) + "% | " + String(pos) + " of " + String(all));
-      });
+  httpUpdate.onError([](int err) {
+    Serial.printf("OTA: update fatal error code %d\n", err);
+  });
 
-      Stream& stream = http.getStream();
-      byte buffer[256];
-      size_t read;
-      size_t written = 0;
-      while ((read = stream.readBytes(&buffer[0], sizeof(buffer))) > 0) {
-        Update.write(buffer, read);
-        written += read;
-      }
-    } else {
-      Serial.printf("[OTA] Error: http status: %d\n", status);
-      http.end();
-      return false;
-    }
+  httpUpdate.onEnd([]() {
+    Serial.println(F("OTA: update process finished"));
+  });
+
+  t_httpUpdate_return ret = httpUpdate.update(client, url, FIRMWARE_VERSION);
+
+  switch (ret) {
+    case HTTP_UPDATE_FAILED:
+      Serial.printf("OTA: update failed. Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+      break;
+
+    case HTTP_UPDATE_NO_UPDATES:
+      Serial.println(F("OTA: device is already up to date."));
+      break;
   }
-
-  http.end();
-
-  if (Update.end(true) && Update.isFinished()) {
-    Serial.println(F("[OTA] Update Success"));
-    ESP.restart();
-    return true;
-  } else {
-    Serial.print(F("[OTA] Update error: "));
-    Serial.println(Update.errorString());
-  }
-  return false;
 }
 
 #endif

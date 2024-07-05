@@ -2,8 +2,6 @@ TODO:
 
 implementar tipo de sensor de umidade (UR , %) e mudar calculo
 
-Atualização remota
-
 Remover intervalo entre acionamentos da cavaqueira da tela.
 Remover tempo de flap aberto e fechado para modo de segurança da tela;
 
