@@ -78,8 +78,6 @@ void xTaskControl(void *parameter) {
     energySupplyInputState.setValueSync(hasEnergySupplyFail, false);
     remoteFailInputState.setValueSync(hasRemoteFail, false);
 
-    activeAlarms[eDisplayAlarm::REMOTE_FAIL] = hasRemoteFail;
-    activeAlarms[eDisplayAlarm::ELECTRICAL_FAIL] = hasEnergySupplyFail;
 #pragma endregion
 
 #pragma region HUMIDITY_DAMPER
@@ -123,6 +121,8 @@ void xTaskControl(void *parameter) {
 
     if ((hasRemoteFail || hasEnergySupplyFail) && failFlagsBlockParam.value()) {
       damperDirState = eHumidityDamperStatus::DAMPER_OPEN;
+      activeAlarms[eDisplayAlarm::REMOTE_FAIL] = hasRemoteFail;
+      activeAlarms[eDisplayAlarm::ELECTRICAL_FAIL] = hasEnergySupplyFail;
     }
 
     digitalWrite(ePinMap::OUT_DAMPER_A, damperDirState == eHumidityDamperStatus::DAMPER_OFF ? LOW : damperDirState != eHumidityDamperStatus::DAMPER_OPEN);
