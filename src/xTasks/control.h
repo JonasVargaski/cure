@@ -46,7 +46,6 @@ void xTaskControl(void *parameter) {
   AsyncTimerModel reactiveAlarmTimer;
   AsyncTimerModel reactiveFanTimer;
   AsyncTimerModel intervalFanStateTimer;
-  AsyncTimerModel injectMachineIntervalTimer;
   AsyncTimerModel injectionMachineClearTimer(true);
   AsyncTimerModel checkVentilationTimer;
   AsyncTimerModel checkElectricalTimer;
@@ -56,8 +55,6 @@ void xTaskControl(void *parameter) {
   CyclicTimerModel injectionMachineOnOffTimer;
 
   PwmRampModel humidityDamperOutputRamp(ePinMap::OUT_DAMPER_PWM, 0, 2000);
-
-  bool securityModeActivated = false;
 
   while (!temperatureSensor.complete() || !humiditySensor.complete()) {
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -86,6 +83,7 @@ void xTaskControl(void *parameter) {
 #pragma endregion
 
 #pragma region HUMIDITY_DAMPER
+    bool securityModeActivated = false;
     int damperDirState = eHumidityDamperStatus::DAMPER_OFF;
 
     if (tempSensorValue - temperatureSetPoint.value() >= securityModeTemperatureDiffParam.value()) {
@@ -98,24 +96,29 @@ void xTaskControl(void *parameter) {
       activeAlarms[eDisplayAlarm::SECURITY_MODE_LOW] = true;
       activeAlarms[eDisplayAlarm::SECURITY_MODE_HIGH] = false;
       damperDirState = eHumidityDamperStatus::DAMPER_CLOSE;
+    } else if (abs(tempSensorValue - temperatureSetPoint.value()) <= 5) {
+      securityModeActivated = false;
+      activeAlarms[eDisplayAlarm::SECURITY_MODE_LOW] = false;
+      activeAlarms[eDisplayAlarm::SECURITY_MODE_HIGH] = false;
     }
 
-    if (securityModeActivated) {
-      if (abs(tempSensorValue - temperatureSetPoint.value()) <= 5) {
-        securityModeActivated = false;
-        activeAlarms[eDisplayAlarm::SECURITY_MODE_LOW] = false;
-        activeAlarms[eDisplayAlarm::SECURITY_MODE_HIGH] = false;
-      }
-    } else {
-      if (humiditySensor.isOutOfRange()) {
-        damperDirState = eHumidityDamperStatus::DAMPER_OFF;
-      } else if (humidSensorValue - humiditySetPoint.value() >= humidityDamperDiffParam.value()) {
+    if (!securityModeActivated) {
+      static bool shouldOpenDamper = false;
+
+      if (humidSensorValue <= humiditySetPoint.value()) {
+        shouldOpenDamper = false;
+      } else if (shouldOpenDamper || humidSensorValue - humiditySetPoint.value() >= humidityDamperDiffParam.value()) {
         humidityDamperOnOffTimer.setDuration(humidityDamperEnableTimeParam.value(), humidityDamperDisableTimeParam.value() * 1000, false);
         damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_OPEN : eHumidityDamperStatus::DAMPER_OFF;
-      } else {
+        shouldOpenDamper = true;
+      }
+
+      if (!shouldOpenDamper) {
         humidityDamperOnOffTimer.setDuration(35000, 60000);  // 35s OPEN, 60s CLOSED
         damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_CLOSE : eHumidityDamperStatus::DAMPER_OFF;
       }
+
+      if (humiditySensor.isOutOfRange()) damperDirState = eHumidityDamperStatus::DAMPER_OFF;
     }
 
     if ((hasRemoteFail || hasEnergySupplyFail) && failFlagsBlockParam.value()) {
@@ -154,26 +157,34 @@ void xTaskControl(void *parameter) {
 #pragma endregion
 
 #pragma region TEMPERATURE_FAN
+    static bool shouldActivateFan = false;
+
     if (temperatureFanEnabled.value()) {
       reactiveFanTimer.reset();
-    } else if (reactiveFanTimer.waitFor(temperatureFanReactiveParam.value() * 1000 * 60)) {
-      temperatureFanEnabled.setValueSync(true);
-    }
 
-    bool shouldActivateFan = false;
+      if (!shouldActivateFan && (temperatureSetPoint.value() - tempSensorValue) >= temperatureFanDiffParam.value()) {
+        shouldActivateFan = intervalFanStateTimer.waitFor(5000);
+      } else if (tempSensorValue >= temperatureSetPoint.value()) {
+        shouldActivateFan = false;
+      }
 
-    if (temperatureFanEnabled.value() && (temperatureSetPoint.value() - tempSensorValue) >= temperatureFanDiffParam.value()) {
-      shouldActivateFan = intervalFanStateTimer.waitFor(5000);  // 5 seconds
-    } else if (digitalRead(ePinMap::OUT_FAN)) {
-      intervalFanStateTimer.reset();
-    }
-
-    if (temperatureSensor.isOutOfRange() || (failFlagsBlockParam.value() && (hasRemoteFail || hasEnergySupplyFail))) {
+    } else {
       shouldActivateFan = false;
+      if (temperatureFanReactiveParam.value() > 0 && reactiveFanTimer.waitFor(temperatureFanReactiveParam.value() * 1000 * 60)) {
+        temperatureFanEnabled.setValueSync(true);
+      }
+    }
+
+    if (shouldActivateFan) {
+      intervalFanStateTimer.reset();
+
+      if (temperatureSensor.isOutOfRange() || (failFlagsBlockParam.value() && (hasRemoteFail || hasEnergySupplyFail))) {
+        shouldActivateFan = false;
+      }
     }
 
     digitalWrite(ePinMap::OUT_FAN, shouldActivateFan);
-    temperatureFanOutputState.setValueSync(digitalRead(ePinMap::OUT_FAN), false);
+    temperatureFanOutputState.setValueSync(shouldActivateFan, false);
 
     if (tempSensorValue - temperatureSetPoint.value() > ARROW_DIFF) {
       tempStatusFlagIndicator.setValueSync(eArrowIcon::ARROW_UP, false);
@@ -196,25 +207,23 @@ void xTaskControl(void *parameter) {
 #pragma endregion
 
 #pragma region TEMPERATURE_INJECTION_MACHINE
-    bool shouldActiveInjectionMachine = false;
-    int injectionMachineState = eInjectionMachineStatus::MACHINE_OFF;
+    static int injectionMachineState = eInjectionMachineStatus::MACHINE_OFF;
+    bool canActivateMachine = shouldActivateFan && injectionMachineEnabled.value();
+
     injectionMachineOnOffTimer.setDuration(injectionMachineEnableTimeParam.value() * 1000, (injectionMachineDisabledTimeParam.value() + injectionMachineClearTimeParam.value()) * 1000);
 
-    if (shouldActivateFan && injectionMachineEnabled.value() && (temperatureSetPoint.value() - tempSensorValue) >= injectionMachineDiffParam.value()) {
-      shouldActiveInjectionMachine = injectMachineIntervalTimer.waitFor(injectionMachineIntervalParam.value() * 1000);
-    } else if (digitalRead(ePinMap::OUT_INJECTION_A)) {
-      injectMachineIntervalTimer.reset();
-    }
-
-    if (shouldActiveInjectionMachine) {
-      injectionMachineState = injectionMachineOnOffTimer.isEnabledNow() ? eInjectionMachineStatus::MACHINE_ON : eInjectionMachineStatus::MACHINE_OFF;
-      if (injectionMachineState == eInjectionMachineStatus::MACHINE_ON) injectionMachineClearTimer.reset();
-    } else {
+    if (canActivateMachine && (temperatureSetPoint.value() - tempSensorValue) >= injectionMachineDiffParam.value()) {
+      if (injectionMachineState == eInjectionMachineStatus::MACHINE_OFF && injectionMachineOnOffTimer.isEnabledNow()) {
+        injectionMachineState = eInjectionMachineStatus::MACHINE_ON;
+      }
+    } else if (injectionMachineState == eInjectionMachineStatus::MACHINE_OFF) {
       injectionMachineOnOffTimer.reset();
-      injectionMachineState = eInjectionMachineStatus::MACHINE_OFF;
     }
 
-    if (injectionMachineState == eInjectionMachineStatus::MACHINE_OFF && !injectionMachineClearTimer.waitFor(injectionMachineClearTimeParam.value() * 1000)) {
+    if (injectionMachineState == eInjectionMachineStatus::MACHINE_CLEAR && injectionMachineClearTimer.waitFor(injectionMachineClearTimeParam.value() * 1000)) {
+      injectionMachineState = eInjectionMachineStatus::MACHINE_OFF;
+    } else if (injectionMachineState == eInjectionMachineStatus::MACHINE_ON && (!injectionMachineOnOffTimer.isEnabledNow() || !canActivateMachine)) {
+      injectionMachineClearTimer.reset();
       injectionMachineState = eInjectionMachineStatus::MACHINE_CLEAR;
     }
 

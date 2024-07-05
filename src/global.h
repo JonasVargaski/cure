@@ -36,7 +36,6 @@ Uint16StorageModel humidityDamperDiffParam(0x1202, &variableMutex, 1, 20);      
 Uint16StorageModel securityModeTemperatureDiffParam(0x1203, &variableMutex, 6, 100);     // diferença entre ajuste/sensor de temperatura para entrar no modo de segurança (setar valor alto para desativar)
 Uint16StorageModel humidityDamperEnableTimeParam(0x1204, &variableMutex, 80, 65535);     // [MILLIS] define tempo que o flap permanece ligado para controle em estágios
 Uint16StorageModel humidityDamperDisableTimeParam(0x1205, &variableMutex, 0, 3600);      // [SECONDS] define tempo que o flap permanece desligado para controle em estágios
-Uint16StorageModel injectionMachineIntervalParam(0x1207, &variableMutex, 0, 7200);       // [SECONDS] tempo de intervalo entre acionamentos da injetora, conta a cada inversão de estado (evita encher a fornalha)
 Uint16StorageModel injectionMachineClearTimeParam(0x1208, &variableMutex, 0, 3600);      // [SECONDS] define tempo que a injetora permanece ligada após acionameto para limpeza (rosca A)
 Uint16StorageModel injectionMachineEnableTimeParam(0x1209, &variableMutex, 0, 18000);    // [SECONDS] define tempo que a injetora permanece ligada (rosca A e B)
 Uint16StorageModel injectionMachineDisabledTimeParam(0x1210, &variableMutex, 0, 18000);  // [SECONDS] define tempo que a injetora permanece desligada (rosca B e/ou A)
@@ -99,7 +98,6 @@ std::vector<Uint16StorageModel*> numberDisplayVariables = {
     &injectionMachineClearTimeParam,
     &injectionMachineEnableTimeParam,
     &injectionMachineDisabledTimeParam,
-    &injectionMachineIntervalParam,
     &humidityDamperOutputState,
     &temperatureFanReactiveParam,
     &tempStatusFlagIndicator,
