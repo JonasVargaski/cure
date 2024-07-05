@@ -1,8 +1,6 @@
 #ifndef _SENSOR_INPUT_MOVING_AVERAGE_ANALOG_
 #define _SENSOR_INPUT_MOVING_AVERAGE_ANALOG_
 
-#include <stdint.h>
-
 #include "Arduino.h"
 #include "model/addressed_variable_model.h"
 
@@ -15,8 +13,6 @@ class SensorInputAverageModel : public AddressedVariable {
   bool _completed = false;
   unsigned int _maxRangeValue;
   int _minRangeValue;
-
-  std::function<int(uint16_t)> _conversionCallback;
 
   void reset() {
     for (int i = 0; i < _samples; i++) {
@@ -34,31 +30,24 @@ class SensorInputAverageModel : public AddressedVariable {
     _minRangeValue = (INT32_MIN + 1);
     _maxRangeValue = (INT32_MAX - 1);
     reset();
-
-    _conversionCallback = [](uint16_t value) {
-      return static_cast<int>(value);
-    };
   }
 
   ~SensorInputAverageModel() {
     delete[] _values;
   }
 
-  void setConversionCallback(std::function<int(uint16_t)> conversionCallback) {
-    _conversionCallback = conversionCallback;
-  }
-
   void setValidRange(int min, unsigned int max) {
-    _minRangeValue = min;
-    _maxRangeValue = max;
+    if (min != _minRangeValue || max != _maxRangeValue) {
+      _minRangeValue = min;
+      _maxRangeValue = max;
+      reset();
+    }
   }
 
   void addValue(uint16_t newValue) {
     if (xSemaphoreTake(*_mutex, portMAX_DELAY) == pdTRUE) {
-      int parsedValue = _conversionCallback(newValue);
-
-      _sum = _sum - _values[_index] + parsedValue;
-      _values[_index] = parsedValue;
+      _sum = _sum - _values[_index] + newValue;
+      _values[_index] = newValue;
 
       if (!_completed && _index + 1 >= _samples) {
         _completed = true;

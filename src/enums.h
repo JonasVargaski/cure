@@ -47,6 +47,11 @@ enum eRemoteTriggerCallback {
   OTA_UPDATE = 0,
 };
 
+enum eHumiditySensorType {
+  HS_FAHRENHEIT,
+  HS_RELATIVE,
+};
+
 enum eDisplayAlarm {
   ALARM_NONE,
   TEMPERATURE_SENSOR_FAIL,

@@ -65,8 +65,8 @@ void xTaskDisplay(void* parameter) {
 
   while (1) {
     if (xTaskGetTickCount() - xLastWakeTime >= pdMS_TO_TICKS(1000)) {
-      hmi.setVPWord(temperatureSensor.address(), temperatureSensor.value());
-      hmi.setVPWord(humiditySensor.address(), humiditySensor.value());
+      hmi.setVPWord(temperatureSensor.address(), temperatureSensor.isOutOfRange() ? 0 : temperatureSensor.value());
+      hmi.setVPWord(humiditySensor.address(), humiditySensor.isOutOfRange() ? 0 : humiditySensor.value());
       xLastWakeTime = xTaskGetTickCount();
     }
 

@@ -8,17 +8,25 @@
 
 #include "global.h"
 
-int adcToCelsius(uint16_t value) {
-  float voltage = value * 0.1875 / 1000;
-  float temperature = voltage * 100.0;
-  return (int)temperature;
+float adcToVoltage(uint16_t value) {  // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)
+  return value * 0.1875 / 1000;       // 0.1875 mV per bit, converted to V
 }
 
-int adcToFahrenheit(uint16_t value) {
-  float voltage = value * 0.1875 / 1000;
+float voltageToCelsius(float voltage) {
+  float temperature = voltage * 100.0;
+  return temperature;
+}
+
+float voltageToFahrenheit(float voltage) {
   float temperature = voltage * 100.0;
   float lm35_temperature_fahrenheit = (temperature * 9.0) / 5.0 + 32.0;
-  return (int)(lm35_temperature_fahrenheit < 33 ? 0 : lm35_temperature_fahrenheit);
+  return (lm35_temperature_fahrenheit < 33 ? 0 : lm35_temperature_fahrenheit);
+}
+
+float voltageToHumidity(float voltage, float temperature = 25) {
+  float sensorRH = (voltage - 0.826) / 0.0315;
+  float trueRH = sensorRH / (1.0546 - (0.00216 * temperature));
+  return trueRH;
 }
 
 TaskHandle_t xTaskSensorsHandle;
@@ -30,15 +38,21 @@ void xTaskSensors(void *parameter) {
   ads.begin();
 
   temperatureSensor.setValidRange(33, 200);
-  humiditySensor.setValidRange(33, 200);
-
-  temperatureSensor.setConversionCallback(adcToCelsius);
-  humiditySensor.setConversionCallback(adcToCelsius);
 
   while (1) {
-    temperatureSensor.addValue(ads.readADC_SingleEnded(0));
-    humiditySensor.addValue(ads.readADC_SingleEnded(1));
-    vTaskDelay(pdMS_TO_TICKS(200));
+    vTaskDelay(150);
+    float vCN0 = adcToVoltage(ads.readADC_SingleEnded(0));
+    temperatureSensor.addValue((int)voltageToFahrenheit(vCN0));
+
+    vTaskDelay(150);
+    float vCN1 = adcToVoltage(ads.readADC_SingleEnded(1));
+    if (humiditySensorType.value() == eHumiditySensorType::HS_RELATIVE) {
+      humiditySensor.setValidRange(3, 100);
+      humiditySensor.addValue((int)voltageToHumidity(vCN1, voltageToCelsius(vCN0)));
+    } else {
+      humiditySensor.setValidRange(33, 200);
+      humiditySensor.addValue((int)voltageToFahrenheit(vCN1));
+    }
   }
 }
 
