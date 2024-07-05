@@ -256,16 +256,21 @@ void xTaskControl(void *parameter) {
 
     static int alarmDisplayIndex;
 
-    if (shouldActivateAlarm) {
-      if (displayAlarmTimer.waitFor(3000)) {
+    if (displayAlarmTimer.waitFor(3000)) {
+      int oldAlarmIndex = alarmDisplayIndex;
+
+      do {
         alarmDisplayIndex = (alarmDisplayIndex + 1) % eDisplayAlarm::DISPLAY_ALARM_MAX_SIZE;
+
         if (activeAlarms[alarmDisplayIndex]) {
-          displayAlarmTimer.reset();
           alarmReasons.setValueSync(alarmDisplayIndex, false);
+          break;
         }
-      }
-    } else {
-      alarmReasons.setValueSync(eDisplayAlarm::ALARM_NONE, false);
+
+      } while (alarmDisplayIndex != oldAlarmIndex);
+
+      if (!activeAlarms[alarmDisplayIndex]) alarmReasons.setValueSync(eDisplayAlarm::ALARM_NONE, false);
+      displayAlarmTimer.reset();
     }
 
     if (alarmEnabled.value()) {
@@ -274,7 +279,7 @@ void xTaskControl(void *parameter) {
       alarmEnabled.setValueSync(true);
     }
 
-    if (toggleAlarmTimer.waitFor(900)) {
+    if (toggleAlarmTimer.waitFor(850)) {
       toggleAlarmTimer.reset();
       digitalWrite(ePinMap::OUT_ALARM, shouldActivateAlarm && alarmEnabled.value() ? !digitalRead(ePinMap::OUT_ALARM) : LOW);
       alarmOutputState.setValueSync(digitalRead(ePinMap::OUT_ALARM), false);
