@@ -6,13 +6,13 @@ unsigned int parseSignalLevel(int rssi) {
   if (rssi <= -100)
     return 0;
 
-  if (rssi <= -88)
+  if (rssi <= -92)
     return 1;
 
-  if (rssi <= -78)
+  if (rssi <= -86)
     return 2;
 
-  if (rssi <= -68)
+  if (rssi <= -80)
     return 3;
 
   return 4;

@@ -48,7 +48,7 @@ void xTaskWifi(void* parameter) {
     DeserializationError error = deserializeJson(doc, payload, length);
     if (error) return;
 
-    uint16_t blackListParams[] = {wifiDeviceId.address(), firmwareVersion.address(), remotePasswordParam.address()};
+    uint16_t blackListParams[] = {wifiDeviceId.address(), firmwareVersion.address(), remotePasswordParam.address(), skipFactoryResetFlag.address()};
 
     JsonArray data = doc["data"];
     for (JsonVariant item : data) {
@@ -115,8 +115,8 @@ void xTaskWifi(void* parameter) {
           doc.clear();
           JsonArray data = doc.to<JsonArray>();
           data.add(wifiDeviceId.value());
-          data.add(remotePasswordParam.value());
           data.add(MQTT_TOPIC_RECEIVE_PARAMS);
+          data.add(workingTimeInHours.value());
           data.add(firmwareVersion.value());
           data.add(BUILD_TIME);
 

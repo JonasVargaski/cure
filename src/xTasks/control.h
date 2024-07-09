@@ -47,8 +47,7 @@ void xTaskControl(void *parameter) {
   AsyncTimerModel reactiveFanTimer;
   AsyncTimerModel intervalFanStateTimer;
   AsyncTimerModel injectionMachineClearTimer(true);
-  AsyncTimerModel checkVentilationTimer;
-  AsyncTimerModel checkElectricalTimer;
+  AsyncTimerModel checkInputFlagsTimer;
   AsyncTimerModel displayAlarmTimer;
 
   CyclicTimerModel humidityDamperOnOffTimer;
@@ -72,17 +71,17 @@ void xTaskControl(void *parameter) {
 #pragma endregion
 
 #pragma region INPUT_FLAGS
-    bool hasRemoteFail = !digitalRead(ePinMap::IN_VENTILATION) ? checkVentilationTimer.waitFor(3000) : checkVentilationTimer.reset();
-    bool hasEnergySupplyFail = !digitalRead(ePinMap::IN_ELECTRICAL) ? checkElectricalTimer.waitFor(3000) : checkElectricalTimer.reset();
-
-    energySupplyInputState.setValueSync(hasEnergySupplyFail, false);
-    remoteFailInputState.setValueSync(hasRemoteFail, false);
+    if (checkInputFlagsTimer.waitFor(3000)) {
+      energySupplyInputState.setValueSync(!digitalRead(ePinMap::IN_ELECTRICAL), false);
+      remoteFailInputState.setValueSync(!digitalRead(ePinMap::IN_VENTILATION), false);
+      checkInputFlagsTimer.reset();
+    }
 
 #pragma endregion
 
 #pragma region HUMIDITY_DAMPER
-    bool securityModeActivated = false;
-    int damperDirState = eHumidityDamperStatus::DAMPER_OFF;
+    static bool securityModeActivated = false;
+    static int damperDirState = eHumidityDamperStatus::DAMPER_OFF;
 
     if (tempSensorValue - temperatureSetPoint.value() >= securityModeTemperatureDiffParam.value()) {
       securityModeActivated = true;
@@ -94,7 +93,7 @@ void xTaskControl(void *parameter) {
       activeAlarms[eDisplayAlarm::SECURITY_MODE_LOW] = true;
       activeAlarms[eDisplayAlarm::SECURITY_MODE_HIGH] = false;
       damperDirState = eHumidityDamperStatus::DAMPER_CLOSE;
-    } else if (abs(tempSensorValue - temperatureSetPoint.value()) <= 5) {
+    } else if (abs(tempSensorValue - temperatureSetPoint.value()) <= securityModeTemperatureDiffParam.value() - 4) {
       securityModeActivated = false;
       activeAlarms[eDisplayAlarm::SECURITY_MODE_LOW] = false;
       activeAlarms[eDisplayAlarm::SECURITY_MODE_HIGH] = false;
@@ -106,7 +105,7 @@ void xTaskControl(void *parameter) {
       if (humidSensorValue <= humiditySetPoint.value()) {
         shouldOpenDamper = false;
       } else if (shouldOpenDamper || humidSensorValue - humiditySetPoint.value() >= humidityDamperDiffParam.value()) {
-        humidityDamperOnOffTimer.setDuration(humidityDamperEnableTimeParam.value(), humidityDamperDisableTimeParam.value() * 1000, false);
+        humidityDamperOnOffTimer.setDuration(humidityDamperEnableTimeParam.value(), humidityDamperDisableTimeParam.value() * 1000, true);
         damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_OPEN : eHumidityDamperStatus::DAMPER_OFF;
         shouldOpenDamper = true;
       }
@@ -119,10 +118,10 @@ void xTaskControl(void *parameter) {
       if (humiditySensor.isOutOfRange()) damperDirState = eHumidityDamperStatus::DAMPER_OFF;
     }
 
-    if ((hasRemoteFail || hasEnergySupplyFail) && failFlagsBlockParam.value()) {
+    if ((remoteFailInputState.value() || energySupplyInputState.value()) && failFlagsBlockParam.value()) {
       damperDirState = eHumidityDamperStatus::DAMPER_OPEN;
-      activeAlarms[eDisplayAlarm::REMOTE_FAIL] = hasRemoteFail;
-      activeAlarms[eDisplayAlarm::ELECTRICAL_FAIL] = hasEnergySupplyFail;
+      activeAlarms[eDisplayAlarm::REMOTE_FAIL] = remoteFailInputState.value();
+      activeAlarms[eDisplayAlarm::ELECTRICAL_FAIL] = energySupplyInputState.value();
     }
 
     digitalWrite(ePinMap::OUT_DAMPER_A, damperDirState == eHumidityDamperStatus::DAMPER_OFF ? LOW : damperDirState != eHumidityDamperStatus::DAMPER_OPEN);
@@ -178,7 +177,7 @@ void xTaskControl(void *parameter) {
     if (shouldActivateFan) {
       intervalFanStateTimer.reset();
 
-      if (temperatureSensor.isOutOfRange() || (failFlagsBlockParam.value() && (hasRemoteFail || hasEnergySupplyFail))) {
+      if (temperatureSensor.isOutOfRange() || (failFlagsBlockParam.value() && (remoteFailInputState.value() || energySupplyInputState.value()))) {
         shouldActivateFan = false;
       }
     }

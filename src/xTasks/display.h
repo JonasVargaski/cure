@@ -9,6 +9,7 @@
 #include <freertos/task.h>
 
 #include "global.h"
+#include "model/async_timer_model.h"
 #include "xTasks/wifi.h"
 
 void onHMIEvent(DwinFrame* frame) {
@@ -61,6 +62,7 @@ void xTaskDisplay(void* parameter) {
   hmi.setBrightness(100);
   hmi.setPage(1);
 
+  AsyncTimerModel workingHoursTimer;
   TickType_t xLastWakeTime = 0;
 
   while (1) {
@@ -83,8 +85,9 @@ void xTaskDisplay(void* parameter) {
         hmi.setText(obj->address(), obj->value());
     }
 
-    hmi.handle();
+    if (workingHoursTimer.waitFor(3600000)) workingTimeInHours.setValueSync(workingTimeInHours.value() + 1);
     vTaskDelay(pdMS_TO_TICKS(60));
+    hmi.handle();
   }
 }
 

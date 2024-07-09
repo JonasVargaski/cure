@@ -5,6 +5,7 @@
 #include "defines/version.h"
 #include "esp_task_wdt.h"
 #include "global.h"
+#include "utils/factory_reset.h"
 #include "xTasks/control.h"
 #include "xTasks/display.h"
 #include "xTasks/sensors.h"
@@ -25,6 +26,7 @@ void setup() {
   resetIOs();
 
   Preferences preferences;
+
   preferences.begin("VP", true);
   for (Uint16StorageModel* obj : numberDisplayVariables)
     obj->loadValue(&preferences);
@@ -41,6 +43,8 @@ void setup() {
   outputMutex = xSemaphoreCreateMutex();
 
   randomSeed(millis());
+
+  if (!skipFactoryResetFlag.value()) factoryReset();
 
   restartWifiTask();
   xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 2048, NULL, 1, &xTaskSensorsHandle, 1);

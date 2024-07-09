@@ -37,19 +37,23 @@ void xTaskSensors(void *parameter) {
   ads.setGain(GAIN_TWOTHIRDS);  // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)
   ads.begin();
 
-  temperatureSensor.setValidRange(33, 200);
-
   while (1) {
     vTaskDelay(150);
     float vCN0 = adcToVoltage(ads.readADC_SingleEnded(0));
-    temperatureSensor.addValue((int)voltageToFahrenheit(vCN0));
+    if (temperatureSensorType.value()) {  // °C
+      temperatureSensor.setValidRange(3, 120);
+      temperatureSensor.addValue((int)voltageToCelsius(vCN0));
+    } else {  // °F
+      temperatureSensor.setValidRange(33, 200);
+      temperatureSensor.addValue((int)voltageToFahrenheit(vCN0));
+    }
 
     vTaskDelay(150);
     float vCN1 = adcToVoltage(ads.readADC_SingleEnded(1));
-    if (humiditySensorType.value() == eHumiditySensorType::HS_RELATIVE) {
+    if (humiditySensorType.value()) {  // UR%
       humiditySensor.setValidRange(3, 100);
       humiditySensor.addValue((int)voltageToHumidity(vCN1, voltageToCelsius(vCN0)));
-    } else {
+    } else {  // °F
       humiditySensor.setValidRange(33, 200);
       humiditySensor.addValue((int)voltageToFahrenheit(vCN1));
     }

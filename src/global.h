@@ -51,6 +51,7 @@ Uint16StorageModel remotePasswordParam(0x1219, &variableMutex, 1, 9999);        
 Uint16StorageModel temperatureFanReactiveParam(0x1220, &variableMutex, 0, 600);          // [MINUTES] contagem de tempo quando ventoinha está desligada para religar automaticamente (0=DESATIVADO)
 BoolStorageModel failFlagsBlockParam(0x1221, &variableMutex);                            // define se habilita bloqueio/modo de segurança por falta de ventilação ou energia [eYesOrNo] (0=NÃO, 1=SIM)
 BoolStorageModel humiditySensorType(0x1222, &variableMutex);                             // Tipo do sensor de umidade [eYesOrNo] (0=ºF, 1=%)
+BoolStorageModel temperatureSensorType(0x1223, &variableMutex);                          // Tipo do sensor de temperatura [eYesOrNo] (0=ºF, 1=ºC)
 
 // VP 1300~1399
 BoolStorageModel alarmEnabled(0x1300, &variableMutex);             // controlar se alarme pode ligar [eYesOrNo] (0=NÃO, 1=SIM)
@@ -76,6 +77,8 @@ Uint16StorageModel humidityStatusFlagIndicator(0x1508, &variableMutex, 0, 2);  /
 BoolStorageModel energySupplyInputState(0x1509, &variableMutex);               // indicador de sinal de rede elétrica (0=FALHA, 1=OK)
 BoolStorageModel remoteFailInputState(0x1510, &variableMutex);                 // indicador de sinal de falha externa (0=FALHA, 1=OK)
 Uint16StorageModel alarmReasons(0x1511, &variableMutex, 0, 10);                // indicador de alarme gerado (1=FALHA_SENSOR_TEMP, 2=FALHA_SENSOR_UMID, 3=SEGURANÇA_ALTA, 4=SEGURANÇA_BAIXA, 5=ALTA_TEMP, 6=BAIXA_TEMP, 7=ALTA_UMID, 8=BAIXA_UMID, 9=FALHA_ELETRICA, 10=FALHA_EXTERNA)
+Uint16StorageModel workingTimeInHours(0x1512, &variableMutex, 0, 65535);       // Tempo em horas que o controlador está ligado (desde o início)
+BoolStorageModel skipFactoryResetFlag(0x1580, &variableMutex);                 // reset de fábrica (0=NÂO, 1=SIM)
 
 std::vector<Uint16StorageModel*> numberDisplayVariables = {
     &temperatureSetPoint,
@@ -103,6 +106,7 @@ std::vector<Uint16StorageModel*> numberDisplayVariables = {
     &tempStatusFlagIndicator,
     &humidityStatusFlagIndicator,
     &alarmReasons,
+    &workingTimeInHours,
 };
 
 std::vector<BoolStorageModel*> booleanDisplayVariables = {
@@ -118,7 +122,9 @@ std::vector<BoolStorageModel*> booleanDisplayVariables = {
     &remoteFailInputState,
     &injectionMachineOutputStateA,
     &humiditySensorType,
+    &temperatureSensorType,
     &injectionMachineOutputStateB,
+    &skipFactoryResetFlag,
 };
 
 std::vector<TextStorageModel*> textDisplayVariables = {
