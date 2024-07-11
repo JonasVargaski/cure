@@ -65,7 +65,6 @@ void xTaskWifi(void* parameter) {
       bool updated = false;
       for (Uint16StorageModel* obj : numberDisplayVariables) {
         if (obj->address() == address) {
-          obj->resetTimeUpdate();
           obj->setValueSync(item[1]);
           bool updated = true;
           break;
@@ -75,7 +74,6 @@ void xTaskWifi(void* parameter) {
       if (updated) continue;
       for (BoolStorageModel* obj : booleanDisplayVariables) {
         if (obj->address() == address) {
-          obj->resetTimeUpdate();
           obj->setValueSync(item[1]);
           bool updated = true;
           break;
@@ -85,7 +83,6 @@ void xTaskWifi(void* parameter) {
       if (updated) continue;
       for (TextStorageModel* obj : textDisplayVariables) {
         if (obj->address() == address) {
-          obj->resetTimeUpdate();
           obj->setValueSync(item[1]);
           break;
         }

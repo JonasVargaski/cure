@@ -54,7 +54,6 @@ class SensorInputAverageModel : public AddressedVariable {
       }
 
       _index = (_index + 1) % _samples;
-      this->resetTimeUpdate();
       xSemaphoreGive(*_mutex);
     }
   }

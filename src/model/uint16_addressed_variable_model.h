@@ -20,7 +20,6 @@ class Uint16StorageModel : public AddressedVariable {
     uint16_t nextValue = constrain(value, _min, _max);
     if (nextValue != _value) {
       _value = nextValue;
-      this->resetTimeUpdate();
       if (saveInPreferences) {
         Preferences preferences;
         preferences.begin("VP", false);

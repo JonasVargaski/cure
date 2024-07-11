@@ -16,7 +16,7 @@ class BoolStorageModel : public AddressedVariable {
     bool nextValue = value != 0;
     if (nextValue != _value) {
       _value = nextValue;
-      this->resetTimeUpdate();
+
       if (saveInPreferences) {
         Preferences preferences;
         preferences.begin("VP", false);

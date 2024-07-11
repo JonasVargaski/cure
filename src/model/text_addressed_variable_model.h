@@ -23,7 +23,6 @@ class TextStorageModel : public AddressedVariable {
     if (strcmp(value, _value) != 0) {
       strncpy(_value, value, _size - 1);
       _value[_size - 1] = '\0';
-      this->resetTimeUpdate();
       if (saveInPreferences) {
         Preferences preferences;
         preferences.begin("VP", false);

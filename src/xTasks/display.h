@@ -2,7 +2,7 @@
 #define _TASK_DISPLAY_
 
 #include <Arduino.h>
-#include <DWIN.h>
+#include <DwinT5II.h>
 #include <WiFi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -12,28 +12,27 @@
 #include "model/async_timer_model.h"
 #include "xTasks/wifi.h"
 
-void onHMIEvent(DwinFrame* frame) {
+void onHMIEvent(DataFrame* frame) {
   frame->print();
 
-  uint16_t vp = frame->getVPAddress();
+  uint16_t vp = frame->getAddress();
   bool updated = false;
 
   if (!updated) {
     for (Uint16StorageModel* obj : numberDisplayVariables) {
       if (obj->address() == vp) {
         updated = true;
-        obj->resetTimeUpdate();
-        obj->setValueSync(frame->getWorldValue());
+        obj->setValueSync(frame->getInt());
         break;
       }
     }
   }
+
   if (!updated) {
     for (BoolStorageModel* obj : booleanDisplayVariables) {
       if (obj->address() == vp) {
         updated = true;
-        obj->resetTimeUpdate();
-        obj->setValueSync(frame->getWorldValue());
+        obj->setValueSync(frame->getInt());
         break;
       }
     }
@@ -42,8 +41,7 @@ void onHMIEvent(DwinFrame* frame) {
     for (TextStorageModel* obj : textDisplayVariables) {
       if (obj->address() == vp) {
         updated = true;
-        obj->resetTimeUpdate();
-        obj->setValueSync(frame->getTextValue().c_str());
+        obj->setValueSync(frame->getAscii().c_str());
         break;
       }
     }
@@ -57,37 +55,27 @@ void onHMIEvent(DwinFrame* frame) {
 TaskHandle_t xTaskDisplayHandle;
 
 void xTaskDisplay(void* parameter) {
-  DWIN hmi(Serial2, 16, 17, 115200, 35);
-  hmi.hmiCallBack(onHMIEvent);
-  hmi.setBrightness(100);
+  Serial2.begin(115200, SERIAL_8N1, 16, 17);
+  DwinT5II hmi(Serial2);
+
+  hmi.setCallback(onHMIEvent);
+  hmi.setBrightness(90);
   hmi.setPage(1);
 
-  AsyncTimerModel workingHoursTimer;
-  TickType_t xLastWakeTime = 0;
-
   while (1) {
-    if (xTaskGetTickCount() - xLastWakeTime >= pdMS_TO_TICKS(1000)) {
-      hmi.setVPWord(temperatureSensor.address(), temperatureSensor.isOutOfRange() ? 0 : temperatureSensor.value());
-      hmi.setVPWord(humiditySensor.address(), humiditySensor.isOutOfRange() ? 0 : humiditySensor.value());
-      xLastWakeTime = xTaskGetTickCount();
-    }
+    vTaskDelay(pdMS_TO_TICKS(300));
 
-    for (Uint16StorageModel* obj : numberDisplayVariables) {
-      if (obj->shouldUpdateDisplay())
-        hmi.setVPWord(obj->address(), obj->value());
-    }
-    for (BoolStorageModel* obj : booleanDisplayVariables) {
-      if (obj->shouldUpdateDisplay())
-        hmi.setVPWord(obj->address(), obj->value());
-    }
-    for (TextStorageModel* obj : textDisplayVariables) {
-      if (obj->shouldUpdateDisplay())
-        hmi.setText(obj->address(), obj->value());
-    }
+    hmi.setVP(temperatureSensor.address(), temperatureSensor.isOutOfRange() ? 0 : temperatureSensor.value());
+    hmi.setVP(humiditySensor.address(), humiditySensor.isOutOfRange() ? 0 : humiditySensor.value());
 
-    if (workingHoursTimer.waitFor(3600000)) workingTimeInHours.setValueSync(workingTimeInHours.value() + 1);
-    vTaskDelay(pdMS_TO_TICKS(60));
-    hmi.handle();
+    for (Uint16StorageModel* obj : numberDisplayVariables)
+      hmi.setVP(obj->address(), obj->value());
+
+    for (BoolStorageModel* obj : booleanDisplayVariables)
+      hmi.setVP(obj->address(), obj->value());
+
+    for (TextStorageModel* obj : textDisplayVariables)
+      hmi.setVP(obj->address(), obj->value());
   }
 }
 

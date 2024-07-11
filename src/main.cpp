@@ -11,6 +11,8 @@
 #include "xTasks/sensors.h"
 #include "xTasks/wifi.h"
 
+AsyncTimerModel workingHoursTimer;
+
 void setup() {
   esp_task_wdt_add(NULL);
   esp_task_wdt_add(xTaskControlHandle);
@@ -56,4 +58,5 @@ void setup() {
 
 void loop() {
   esp_task_wdt_reset();
+  if (workingHoursTimer.waitFor(3600000)) workingTimeInHours.setValueSync(workingTimeInHours.value() + 1);
 }
