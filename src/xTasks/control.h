@@ -63,7 +63,6 @@ void xTaskControl(void *parameter) {
     vTaskDelay(pdMS_TO_TICKS(15));
 
 #pragma region SENSORS
-
     activeAlarms[eDisplayAlarm::TEMPERATURE_SENSOR_FAIL] = temperatureSensor.isOutOfRange();
     activeAlarms[eDisplayAlarm::HUMIDITY_SENSOR_FAIL] = humiditySensor.isOutOfRange();
 #pragma endregion
@@ -72,6 +71,8 @@ void xTaskControl(void *parameter) {
     if (checkInputFlagsTimer.waitFor(3000)) {
       energySupplyInputState.setValue(!digitalRead(ePinMap::IN_ELECTRICAL), false);
       remoteFailInputState.setValue(!digitalRead(ePinMap::IN_VENTILATION), false);
+      activeAlarms[eDisplayAlarm::REMOTE_FAIL] = remoteFailInputState.value;
+      activeAlarms[eDisplayAlarm::ELECTRICAL_FAIL] = energySupplyInputState.value;
       checkInputFlagsTimer.reset();
     }
 
@@ -109,7 +110,7 @@ void xTaskControl(void *parameter) {
       }
 
       if (!shouldOpenDamper) {
-        humidityDamperOnOffTimer.setDuration(35000, 60000);  // 35s OPEN, 60s CLOSED
+        humidityDamperOnOffTimer.setDuration(25000, 120000);  // 25s OPEN, 120s CLOSED
         damperDirState = humidityDamperOnOffTimer.isEnabledNow() ? eHumidityDamperStatus::DAMPER_CLOSE : eHumidityDamperStatus::DAMPER_OFF;
       }
 
@@ -118,8 +119,6 @@ void xTaskControl(void *parameter) {
 
     if ((remoteFailInputState.value || energySupplyInputState.value) && failFlagsBlockParam.value) {
       damperDirState = eHumidityDamperStatus::DAMPER_OPEN;
-      activeAlarms[eDisplayAlarm::REMOTE_FAIL] = remoteFailInputState.value;
-      activeAlarms[eDisplayAlarm::ELECTRICAL_FAIL] = energySupplyInputState.value;
     }
 
     digitalWrite(ePinMap::OUT_DAMPER_A, damperDirState == eHumidityDamperStatus::DAMPER_OFF ? LOW : damperDirState != eHumidityDamperStatus::DAMPER_OPEN);

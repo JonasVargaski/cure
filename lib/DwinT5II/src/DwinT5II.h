@@ -30,6 +30,7 @@ class DwinT5II {
   DataFrame *readVP(uint16_t address, byte countAddress);
   void setBrightness(const uint8_t brightness);
   void setPage(const uint8_t &pageNum);
+  void beep(int durationInMs);
   int getPage();
 
   private:

@@ -14,7 +14,7 @@ void factoryReset() {
   alarmTemperatureTypeParam.setValue(3);
   alarmHumidityTypeParam.setValue(0);
   alarmSecurityTypeParam.setValue(0);
-  securityModeTemperatureDiffParam.setValue(100);
+  securityModeTemperatureDiffParam.setValue(99);
   remotePasswordParam.setValue(0);
   temperatureFanDiffParam.setValue(1);
   humidityDamperDiffParam.setValue(1);
@@ -30,7 +30,7 @@ void factoryReset() {
   injectionMachineEnabled.setValue(0);
   alarmVentilationTypeParam.setValue(1);
   alarmElectricalSupplyTypeParam.setValue(1);
-  failFlagsBlockParam.setValue(1);
+  failFlagsBlockParam.setValue(0);
   humiditySensorType.setValue(false);
   temperatureSensorType.setValue(false);
   wifiSsidParam.setValue("");

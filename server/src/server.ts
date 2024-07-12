@@ -2,9 +2,22 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
+import os from "os";
 
 const app = express();
 const PORT = 3001;
+
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const interfaceName in interfaces) {
+    for (const iface of interfaces[interfaceName]!) {
+      if (iface.family === "IPv4" && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return "0.0.0.0"; // Default fallback IP
+}
 
 const getBuildVersion = () => {
   const buildVersionPath = path.join(
@@ -52,5 +65,7 @@ app.get("/download/firmware", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(
+    `Server is running on http://localhost:${PORT}, local ip: http://${getLocalIP()}:${PORT}`
+  );
 });

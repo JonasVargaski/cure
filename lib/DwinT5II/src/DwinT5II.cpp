@@ -40,6 +40,13 @@ FrameState DwinT5II::sendCommand(const uint8_t *command, const uint8_t &cmdLengt
   }
 }
 
+void DwinT5II::beep(int durationInMs) {
+  long cycles = (durationInMs / 8);
+  uint8_t lx = static_cast<uint8_t>(cycles & 0xFF);
+  byte sendBuffer[] = {CMD_HEAD1, CMD_HEAD2, 0x05, CMD_WRITE, 0x00, 0xA0, 0x00, lx};
+  sendCommand(sendBuffer, sizeof(sendBuffer));
+}
+
 void DwinT5II::setBrightness(const uint8_t brightness) {
   uint8_t brtn = constrain(brightness, 0, 127);
   byte sendBuffer[] = {CMD_HEAD1, CMD_HEAD2, 0x04, CMD_WRITE, 0x00, CMD_WRITE, brtn};

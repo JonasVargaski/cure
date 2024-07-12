@@ -10,36 +10,36 @@
 
 class PwmRampModel {
   private:
-  int _channel;
-  int _resolution;
-  int _dutyCycleMax;
+  int channel;
+  int resolution;
+  int dutyCycleMax;
 
-  uint32_t _startTime;
-  bool _inProgress;
+  uint32_t startTime;
+  bool inProgress;
 
   public:
   PwmRampModel(int pin, int channel, int frequency, int resolutionBits = 10)
-      : _channel(channel), _resolution(resolutionBits) {
-    _inProgress = false;
-    _dutyCycleMax = pow(2, _resolution) - 1;
+      : channel(channel), resolution(resolutionBits) {
+    inProgress = false;
+    dutyCycleMax = pow(2, resolution) - 1;
     ledcSetup(channel, frequency, resolutionBits);
-    ledcAttachPin(pin, _channel);
-    ledcWrite(_channel, 0);
+    ledcAttachPin(pin, channel);
+    ledcWrite(channel, 0);
   }
 
-  void start(int accelerationDurationMs, int maxDutyCycle = 100) {
-    if (!_inProgress) {
-      ledcWrite(_channel, 0);
-      _startTime = esp_timer_get_time() / 1000;
-      _inProgress = true;
+  void start(int accelerationDurationMs, int maxDutyCyclePercent = 100) {
+    if (!inProgress) {
+      ledcWrite(channel, 0);
+      startTime = esp_timer_get_time() / 1000;
+      inProgress = true;
     }
 
-    if (_inProgress) {
-      int dutyCycleMaxTarget = _dutyCycleMax * (maxDutyCycle / 100.0);
-      int currentDutyCycle = ledcRead(_channel);
+    if (inProgress) {
+      int dutyCycleMaxTarget = dutyCycleMax * (maxDutyCyclePercent / 100.0);
+      int currentDutyCycle = ledcRead(channel);
       if (currentDutyCycle >= dutyCycleMaxTarget) return;
 
-      uint32_t elapsedTime = (esp_timer_get_time() / 1000) - _startTime;
+      uint32_t elapsedTime = (esp_timer_get_time() / 1000) - startTime;
       int nextDutyCycle = 0;
       if (elapsedTime < accelerationDurationMs) {
         int dutyCycle = map(elapsedTime, 0, accelerationDurationMs, 0, dutyCycleMaxTarget);
@@ -48,13 +48,13 @@ class PwmRampModel {
         nextDutyCycle = dutyCycleMaxTarget;
       }
 
-      ledcWrite(_channel, nextDutyCycle);
+      ledcWrite(channel, nextDutyCycle);
     }
   }
 
   void stop() {
-    _inProgress = false;
-    ledcWrite(_channel, 0);
+    inProgress = false;
+    ledcWrite(channel, 0);
   }
 };
 
