@@ -40,22 +40,22 @@ void xTaskSensors(void *parameter) {
   while (1) {
     vTaskDelay(150);
     float vCN0 = adcToVoltage(ads.readADC_SingleEnded(0));
-    if (temperatureSensorType.value()) {  // °C
-      temperatureSensor.setValidRange(3, 120);
-      temperatureSensor.addValue((int)voltageToCelsius(vCN0));
+    if (temperatureSensorType.value) {  // °C
+      temperatureSensor.setRange(3, 120);
+      temperatureSensor.setValue((int)voltageToCelsius(vCN0));
     } else {  // °F
-      temperatureSensor.setValidRange(33, 200);
-      temperatureSensor.addValue((int)voltageToFahrenheit(vCN0));
+      temperatureSensor.setRange(33, 200);
+      temperatureSensor.setValue((int)voltageToFahrenheit(vCN0));
     }
 
     vTaskDelay(150);
     float vCN1 = adcToVoltage(ads.readADC_SingleEnded(1));
-    if (humiditySensorType.value()) {  // UR%
-      humiditySensor.setValidRange(3, 100);
-      humiditySensor.addValue((int)voltageToHumidity(vCN1, voltageToCelsius(vCN0)));
+    if (humiditySensorType.value) {  // UR%
+      humiditySensor.setRange(3, 100);
+      humiditySensor.setValue((int)voltageToHumidity(vCN1, voltageToCelsius(vCN0)));
     } else {  // °F
-      humiditySensor.setValidRange(33, 200);
-      humiditySensor.addValue((int)voltageToFahrenheit(vCN1));
+      humiditySensor.setRange(33, 200);
+      humiditySensor.setValue((int)voltageToFahrenheit(vCN1));
     }
   }
 }

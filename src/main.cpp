@@ -14,39 +14,33 @@
 AsyncTimerModel workingHoursTimer;
 
 void setup() {
+  resetIOs();
+
   esp_task_wdt_add(NULL);
   esp_task_wdt_add(xTaskControlHandle);
   esp_task_wdt_add(xTaskDisplayHandle);
   esp_task_wdt_add(xTaskSensorsHandle);
   esp_task_wdt_add(xTaskWifiHandle);
-
   esp_task_wdt_init(5, true);
+
+  variableMutex = xSemaphoreCreateMutex();
+
+  Preferences preferences;
+  preferences.begin("vp", true);
+
+  for (DisplayInt *obj : displayIntObjects)
+    obj->setValue(preferences.getInt(String(obj->address).c_str(), 0));
+
+  for (DisplayText *obj : displayTextObjects)
+    obj->setValue(preferences.getString(String(obj->address).c_str(), "").c_str());
+
+  preferences.end();
 
   Serial.begin(115200);
   Serial.println(F("\nready!\n"));
 
-  resetIOs();
-
-  Preferences preferences;
-
-  preferences.begin("VP", true);
-  for (Uint16StorageModel* obj : numberDisplayVariables)
-    obj->loadValue(&preferences);
-  for (BoolStorageModel* obj : booleanDisplayVariables)
-    obj->loadValue(&preferences);
-  for (TextStorageModel* obj : textDisplayVariables)
-    obj->loadValue(&preferences);
-  preferences.end();
-
   firmwareVersion.setValue(FIRMWARE_VERSION);
-
-  variableMutex = xSemaphoreCreateMutex();
-  sensorMutex = xSemaphoreCreateMutex();
-  outputMutex = xSemaphoreCreateMutex();
-
-  randomSeed(millis());
-
-  if (!skipFactoryResetFlag.value()) factoryReset();
+  if (!skipFactoryResetFlag.value) factoryReset();
 
   restartWifiTask();
   xTaskCreatePinnedToCore(xTaskSensors, "sensorsTask", 2048, NULL, 1, &xTaskSensorsHandle, 1);
@@ -58,5 +52,5 @@ void setup() {
 
 void loop() {
   esp_task_wdt_reset();
-  if (workingHoursTimer.waitFor(3600000)) workingTimeInHours.setValueSync(workingTimeInHours.value() + 1);
+  if (workingHoursTimer.waitFor(3600000)) workingTimeInHours.setValue(workingTimeInHours.value + 1);
 }

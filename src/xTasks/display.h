@@ -15,39 +15,23 @@
 void onHMIEvent(DataFrame* frame) {
   frame->print();
 
-  uint16_t vp = frame->getAddress();
-  bool updated = false;
+  uint16_t address = frame->getAddress();
 
-  if (!updated) {
-    for (Uint16StorageModel* obj : numberDisplayVariables) {
-      if (obj->address() == vp) {
-        updated = true;
-        obj->setValueSync(frame->getInt());
-        break;
-      }
+  for (DisplayInt* obj : displayIntObjects) {
+    if (address == obj->address) {
+      obj->setValue(frame->getInt());
+      break;
     }
   }
 
-  if (!updated) {
-    for (BoolStorageModel* obj : booleanDisplayVariables) {
-      if (obj->address() == vp) {
-        updated = true;
-        obj->setValueSync(frame->getInt());
-        break;
-      }
-    }
-  }
-  if (!updated) {
-    for (TextStorageModel* obj : textDisplayVariables) {
-      if (obj->address() == vp) {
-        updated = true;
-        obj->setValueSync(frame->getAscii().c_str());
-        break;
-      }
+  for (DisplayText* obj : displayTextObjects) {
+    if (address == obj->address) {
+      obj->setValue(frame->getAscii().c_str());
+      break;
     }
   }
 
-  if (vp == wifiSsidParam.address() || vp == wifiPasswordParam.address() || vp == remotePasswordParam.address()) {
+  if (address == wifiSsidParam.address || address == wifiPasswordParam.address || address == remotePasswordParam.address) {
     restartWifiTask();
   }
 }
@@ -63,19 +47,16 @@ void xTaskDisplay(void* parameter) {
   hmi.setPage(1);
 
   while (1) {
-    vTaskDelay(pdMS_TO_TICKS(300));
+    vTaskDelay(pdMS_TO_TICKS(500));
 
-    hmi.setVP(temperatureSensor.address(), temperatureSensor.isOutOfRange() ? 0 : temperatureSensor.value());
-    hmi.setVP(humiditySensor.address(), humiditySensor.isOutOfRange() ? 0 : humiditySensor.value());
+    hmi.setVP(temperatureSensor.address, temperatureSensor.isOutOfRange() ? 0 : temperatureSensor.value);
+    hmi.setVP(humiditySensor.address, humiditySensor.isOutOfRange() ? 0 : humiditySensor.value);
 
-    for (Uint16StorageModel* obj : numberDisplayVariables)
-      hmi.setVP(obj->address(), obj->value());
+    for (DisplayInt* obj : displayIntObjects)
+      hmi.setVP(obj->address, obj->value);
 
-    for (BoolStorageModel* obj : booleanDisplayVariables)
-      hmi.setVP(obj->address(), obj->value());
-
-    for (TextStorageModel* obj : textDisplayVariables)
-      hmi.setVP(obj->address(), obj->value());
+    for (DisplayText* obj : displayTextObjects)
+      hmi.setVP(obj->address, obj->value);
   }
 }
 

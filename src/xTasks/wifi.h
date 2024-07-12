@@ -37,7 +37,7 @@ void xTaskWifi(void* parameter) {
 
   WiFi.mode(WIFI_MODE_STA);
   WiFi.disconnect();
-  wifiDeviceId.setValueSync(deviceId.c_str());
+  wifiDeviceId.setValue(deviceId.c_str());
 
   mqtt.setBufferSize(MQTT_BUFFER_SIZE);
   mqtt.setServer(MQTT_BROKER, MQTT_PORT);
@@ -48,7 +48,7 @@ void xTaskWifi(void* parameter) {
     DeserializationError error = deserializeJson(doc, payload, length);
     if (error) return;
 
-    uint16_t blackListParams[] = {wifiDeviceId.address(), firmwareVersion.address(), remotePasswordParam.address(), skipFactoryResetFlag.address()};
+    uint16_t blackListParams[] = {wifiDeviceId.address, firmwareVersion.address, remotePasswordParam.address, skipFactoryResetFlag.address};
 
     JsonArray data = doc["data"];
     for (JsonVariant item : data) {
@@ -62,28 +62,17 @@ void xTaskWifi(void* parameter) {
       if (arrayContains(address, blackListParams))
         continue;
 
-      bool updated = false;
-      for (Uint16StorageModel* obj : numberDisplayVariables) {
-        if (obj->address() == address) {
-          obj->setValueSync(item[1]);
+      for (DisplayInt* obj : displayIntObjects) {
+        if (obj->address == address) {
+          obj->setValue(item[1]);
           bool updated = true;
           break;
         }
       }
 
-      if (updated) continue;
-      for (BoolStorageModel* obj : booleanDisplayVariables) {
-        if (obj->address() == address) {
-          obj->setValueSync(item[1]);
-          bool updated = true;
-          break;
-        }
-      }
-
-      if (updated) continue;
-      for (TextStorageModel* obj : textDisplayVariables) {
-        if (obj->address() == address) {
-          obj->setValueSync(item[1]);
+      for (DisplayText* obj : displayTextObjects) {
+        if (obj->address == address) {
+          obj->setValue(item[1]);
           break;
         }
       }
@@ -92,29 +81,29 @@ void xTaskWifi(void* parameter) {
 
   while (1) {
     while (WiFi.status() != WL_CONNECTED) {
-      WiFi.begin(wifiSsidParam.value(), wifiPasswordParam.value());
-      wifiSignalQuality.setValueSync(0, false);
-      connectionStatus.setValueSync(eWifiStatus::DISCONNECTED, false);
+      WiFi.begin(wifiSsidParam.value, wifiPasswordParam.value);
+      wifiSignalQuality.setValue(0, false);
+      connectionStatus.setValue(eWifiStatus::DISCONNECTED, false);
       vTaskDelay(pdMS_TO_TICKS(3000));
     }
 
     while (!mqtt.connected()) {
-      wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
-      connectionStatus.setValueSync(eWifiStatus::CONNECTING, false);
+      wifiSignalQuality.setValue(parseSignalLevel(WiFi.RSSI()), false);
+      connectionStatus.setValue(eWifiStatus::CONNECTING, false);
       vTaskDelay(pdMS_TO_TICKS(3000));
 
       if (mqtt.connect((String(random(0xffff), HEX) + String(random(0xffff), HEX)).c_str())) {
         char MQTT_TOPIC_RECEIVE_PARAMS[26];
-        snprintf(MQTT_TOPIC_RECEIVE_PARAMS, sizeof(MQTT_TOPIC_RECEIVE_PARAMS), "/cure/%s:%04d", deviceId, remotePasswordParam.value());
+        snprintf(MQTT_TOPIC_RECEIVE_PARAMS, sizeof(MQTT_TOPIC_RECEIVE_PARAMS), "/cure/%s:%04d", deviceId, remotePasswordParam.value);
         mqtt.subscribe(MQTT_TOPIC_RECEIVE_PARAMS);
 
         if (!registered) {
           doc.clear();
           JsonArray data = doc.to<JsonArray>();
-          data.add(wifiDeviceId.value());
+          data.add(wifiDeviceId.value);
           data.add(MQTT_TOPIC_RECEIVE_PARAMS);
-          data.add(workingTimeInHours.value());
-          data.add(firmwareVersion.value());
+          data.add(workingTimeInHours.value);
+          data.add(firmwareVersion.value);
           data.add(BUILD_TIME);
 
           static char buffer[100];
@@ -122,40 +111,36 @@ void xTaskWifi(void* parameter) {
           registered = mqtt.publish("/cure/on/register", buffer);
         }
       } else {
-        connectionStatus.setValueSync(eWifiStatus::WITHOUT_INTERNET, false);
+        connectionStatus.setValue(eWifiStatus::WITHOUT_INTERNET, false);
       }
     }
 
     if (updateTimer.waitFor(3000)) {
       updateTimer.reset();
-      connectionStatus.setValueSync(eWifiStatus::CONNECTED, false);
-      wifiSignalQuality.setValueSync(parseSignalLevel(WiFi.RSSI()), false);
+      connectionStatus.setValue(eWifiStatus::CONNECTED, false);
+      wifiSignalQuality.setValue(parseSignalLevel(WiFi.RSSI()), false);
 
       doc.clear();
       JsonArray data = doc["data"].to<JsonArray>();
 
       JsonArray tempSensor = data.add<JsonArray>();
-      tempSensor.add(temperatureSensor.address());
-      tempSensor.add(temperatureSensor.value());
+      tempSensor.add(temperatureSensor.address);
+      tempSensor.add(temperatureSensor.value);
 
       JsonArray humidSensor = data.add<JsonArray>();
-      humidSensor.add(humiditySensor.address());
-      humidSensor.add(humiditySensor.value());
+      humidSensor.add(humiditySensor.address);
+      humidSensor.add(humiditySensor.value);
 
-      for (Uint16StorageModel* obj : numberDisplayVariables) {
+      for (DisplayInt* obj : displayIntObjects) {
         JsonArray partial = data.add<JsonArray>();
-        partial.add(obj->address());
-        partial.add(obj->value());
+        partial.add(obj->address);
+        partial.add(obj->value);
       }
-      for (BoolStorageModel* obj : booleanDisplayVariables) {
+
+      for (DisplayText* obj : displayTextObjects) {
         JsonArray partial = data.add<JsonArray>();
-        partial.add(obj->address());
-        partial.add((int)obj->value());
-      }
-      for (TextStorageModel* obj : textDisplayVariables) {
-        JsonArray partial = data.add<JsonArray>();
-        partial.add(obj->address());
-        partial.add(obj->value());
+        partial.add(obj->address);
+        partial.add(obj->value);
       }
 
       JsonArray alarms = doc["alarm"].to<JsonArray>();
